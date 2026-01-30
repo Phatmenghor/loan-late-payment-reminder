@@ -1,30 +1,25 @@
 package com.emenu.features.auth.models;
 
 import com.emenu.enums.user.AccountStatus;
+import com.emenu.enums.user.RoleEnum;
 import com.emenu.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.hibernate.usertype.UserType;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 
 @Entity
-@Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_platform_user_identifier", columnNames = {"user_identifier", "user_type"}),
-        @UniqueConstraint(name = "uk_business_user_identifier", columnNames = {"user_identifier", "business_id"})
-})
+@Table(name = "users")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User extends BaseUUIDEntity {
 
-    @Column(name = "user_identifier", nullable = false)
+    @Column(name = "user_identifier", nullable = false, unique = true)
     private String userIdentifier;
 
     @Column(name = "email")
@@ -49,13 +44,9 @@ public class User extends BaseUUIDEntity {
     @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private List<Role> roles;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private RoleEnum role = RoleEnum.CUSTOMER;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;

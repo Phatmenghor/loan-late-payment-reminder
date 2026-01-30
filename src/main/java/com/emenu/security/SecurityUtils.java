@@ -1,12 +1,12 @@
 package com.emenu.security;
 
 import com.emenu.enums.user.AccountStatus;
-import com.emenu.exception.custom.*;
+import com.emenu.enums.user.RoleEnum;
+import com.emenu.exception.custom.ValidationException;
 import com.emenu.features.auth.models.User;
 import com.emenu.features.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -94,26 +94,16 @@ public class SecurityUtils {
         }
     }
 
-    public UUID getCurrentUserBusinessId() {
-        try {
-            User currentUser = getCurrentUser();
-            return currentUser.getBusinessId();
-        } catch (Exception e) {
-            log.debug("Error getting business ID: {}", e.getMessage());
-            return null;
-        }
-    }
-
     public UUID getCurrentUserId() {
         return getCurrentUser().getId();
     }
 
-    public com.emenu.enums.user.UserType getCurrentUserType() {
+    public RoleEnum getCurrentUserRole() {
         try {
             User currentUser = getCurrentUser();
-            return currentUser.getUserType();
+            return currentUser.getRole();
         } catch (Exception e) {
-            log.debug("Error getting user type: {}", e.getMessage());
+            log.debug("Error getting user role: {}", e.getMessage());
             return null;
         }
     }

@@ -1,13 +1,11 @@
 package com.emenu.config;
 
 import com.emenu.enums.user.AccountStatus;
-import com.emenu.features.auth.models.Role;
+import com.emenu.enums.user.RoleEnum;
 import com.emenu.features.auth.models.User;
-import com.emenu.features.auth.repository.RoleRepository;
 import com.emenu.features.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.usertype.UserType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -16,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
@@ -25,7 +22,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Order(1)
 public class DataInitializationService {
 
-    private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -56,47 +52,34 @@ public class DataInitializationService {
             }
 
             try {
-                log.info("🚀 Starting Cambodia E-Menu Platform data initialization...");
-
-                // Initialize in strict order
-                int rolesCreated = ensureRolesExist();
-                log.info("✅ Roles initialization completed - {} roles processed", rolesCreated);
-
+                log.info("Starting data initialization...");
 
                 if (createDefaultAdmin) {
                     int usersCreated = initializeDefaultUsers();
-                    log.info("✅ Default users initialization completed - {} users processed", usersCreated);
+                    log.info("Default users initialization completed - {} users processed", usersCreated);
                 }
 
-                // Mark as initialized only after all steps complete
                 initialized.set(true);
-                log.info("🎉 Cambodia E-Menu Platform data initialization completed successfully!");
+                log.info("Data initialization completed successfully!");
 
             } catch (Exception e) {
-                log.error("❌ Error during data initialization: {}", e.getMessage(), e);
-                // Don't set initialized flag on failure so it can be retried
+                log.error("Error during data initialization: {}", e.getMessage(), e);
                 throw new RuntimeException("Data initialization failed", e);
             }
         }
     }
 
-
     private int initializeDefaultUsers() {
         try {
-            log.info("🔄 Initializing default users...");
-            
-            int usersCreated = 0;
-            usersCreated += createPlatformOwner();
-            
-            return usersCreated;
-            
+            log.info("Initializing default users...");
+            return createDeveloperAdmin();
         } catch (Exception e) {
-            log.error("❌ Error initializing default users: {}", e.getMessage(), e);
+            log.error("Error initializing default users: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize default users", e);
         }
     }
 
-    private int createPlatformOwner() {
+    private int createDeveloperAdmin() {
         try {
             String adminUserIdentifier = defaultAdminEmail;
 
@@ -108,21 +91,18 @@ public class DataInitializationService {
                 admin.setFirstName("Platform");
                 admin.setLastName("Administrator");
                 admin.setAccountStatus(AccountStatus.ACTIVE);
-
-                Role platformOwnerRole = roleRepository.findByNameAndIsDeletedFalse("PLATFORM_OWNER")
-                        .orElseThrow(() -> new RuntimeException("Platform owner role not found"));
-                admin.setRoles(List.of(platformOwnerRole));
+                admin.setRole(RoleEnum.DEVELOPER);
 
                 admin = userRepository.save(admin);
-                log.info("✅ Created platform owner: {} with ID: {}", adminUserIdentifier, admin.getId());
+                log.info("Created developer admin: {} with ID: {}", adminUserIdentifier, admin.getId());
                 return 1;
             } else {
-                log.info("ℹ️ Platform owner already exists: {}", adminUserIdentifier);
+                log.info("Developer admin already exists: {}", adminUserIdentifier);
                 return 0;
             }
         } catch (Exception e) {
-            log.error("❌ Error creating platform owner: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create platform owner", e);
+            log.error("Error creating developer admin: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create developer admin", e);
         }
     }
 }

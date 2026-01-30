@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -25,20 +24,11 @@ public class JWTGenerator {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    @Value("${jwt.refresh-token-expiration}")
-    private long refreshTokenExpiration;
-
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * Generate access token from Authentication object
-     *
-     * @param authentication the authentication object
-     * @return JWT access token
-     */
     public String generateAccessToken(Authentication authentication) {
         String username = authentication.getName();
         Date currentDate = new Date();
@@ -58,66 +48,6 @@ public class JWTGenerator {
                 .compact();
     }
 
-    /**
-     * Generate access token from username and roles (used during token refresh)
-     *
-     * @param username the username
-     * @param roles list of roles
-     * @return JWT access token
-     */
-    public String generateAccessTokenFromUsername(String username, List<String> roles) {
-        Date currentDate = new Date();
-        Date expiryDate = new Date(currentDate.getTime() + jwtExpiration);
-
-        String rolesString = String.join(",", roles);
-
-        return Jwts.builder()
-                .subject(username)
-                .claim("roles", rolesString)
-                .claim("type", "access")
-                .issuedAt(currentDate)
-                .expiration(expiryDate)
-                .signWith(getSigningKey(), Jwts.SIG.HS512)
-                .compact();
-    }
-
-    /**
-     * Generate refresh token for a user
-     *
-     * @param username the username
-     * @param userType the user type (PLATFORM_USER, BUSINESS_USER, CUSTOMER)
-     * @param businessId the business ID (nullable, required for BUSINESS_USER)
-     * @return JWT refresh token
-     */
-    public String generateRefreshToken(String username, String userType, String businessId) {
-        Date currentDate = new Date();
-        Date expiryDate = new Date(currentDate.getTime() + refreshTokenExpiration);
-
-        var builder = Jwts.builder()
-                .subject(username)
-                .claim("type", "refresh")
-                .claim("userType", userType)
-                .issuedAt(currentDate)
-                .expiration(expiryDate);
-
-        // Add businessId claim only if it's not null
-        if (businessId != null) {
-            builder.claim("businessId", businessId);
-        }
-
-        return builder.signWith(getSigningKey(), Jwts.SIG.HS512)
-                .compact();
-    }
-
-    /**
-     * Get refresh token expiration date
-     *
-     * @return expiration date
-     */
-    public Date getRefreshTokenExpiryDate() {
-        return new Date(System.currentTimeMillis() + refreshTokenExpiration);
-    }
-
     public String getUsernameFromJWT(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -125,24 +55,6 @@ public class JWTGenerator {
                 .parseSignedClaims(token)
                 .getPayload();
         return claims.getSubject();
-    }
-
-    public String getUserTypeFromJWT(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return claims.get("userType", String.class);
-    }
-
-    public String getBusinessIdFromJWT(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return claims.get("businessId", String.class);
     }
 
     public Date getExpirationDateFromJWT(String token) {
