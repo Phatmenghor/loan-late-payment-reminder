@@ -21,7 +21,7 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
      * Finds a non-deleted category by ID with business details eagerly fetched
      */
     @Query("SELECT c FROM Category c " +
-           "WHERE c.id = :id AND c.isDeleted = false")
+            "WHERE c.id = :id AND c.isDeleted = false")
     Optional<Category> findById(@Param("id") UUID id);
 
     /**
@@ -33,29 +33,27 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
      * Find all categories with dynamic filtering - paginated
      */
     @Query("SELECT DISTINCT c FROM Category c " +
-           "WHERE c.isDeleted = false " +
-           "AND (:status IS NULL OR c.status = :status) " +
-           "AND (:search IS NULL OR :search = '' OR " +
-           "     LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "     LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "WHERE c.isDeleted = false " +
+            "AND (:status IS NULL OR c.status = :status) " +
+            "AND (:search IS NULL OR :search = '' OR " +
+            "     LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Category> findAllWithFilters(
-        @Param("status") Status status,
-        @Param("search") String search,
-        Pageable pageable
+            @Param("status") Status status,
+            @Param("search") String search,
+            Pageable pageable
     );
 
     /**
      * Find all categories with dynamic filtering - non-paginated
      */
     @Query("SELECT DISTINCT c FROM Category c " +
-           "WHERE c.isDeleted = false " +
-           "AND (:status IS NULL OR c.status = :status) " +
-           "AND (:search IS NULL OR :search = '' OR " +
-           "     LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "     LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "WHERE c.isDeleted = false " +
+            "AND (:status IS NULL OR c.status = :status) " +
+            "AND (:search IS NULL OR :search = '' OR " +
+            "     LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<Category> findAllWithFilters(
-        @Param("status") Status status,
-        @Param("search") String search,
-        Sort sort
+            @Param("status") Status status,
+            @Param("search") String search,
+            Sort sort
     );
 }

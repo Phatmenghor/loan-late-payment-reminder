@@ -26,7 +26,7 @@ public interface BannerRepository extends JpaRepository<Banner, UUID> {
      * Finds a non-deleted banner by ID with business details eagerly fetched
      */
     @Query("SELECT b FROM Banner b " +
-           "WHERE b.id = :id AND b.isDeleted = false")
+            "WHERE b.id = :id AND b.isDeleted = false")
     Optional<Banner> findByIdWithBusiness(@Param("id") UUID id);
 
 
@@ -37,7 +37,7 @@ public interface BannerRepository extends JpaRepository<Banner, UUID> {
             "WHERE b.isDeleted = false " +
             "AND (:status IS NULL OR b.status = :status) " +
             "AND (:search IS NULL OR :search = '' OR " +
-            "     LOWER(bus.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "     LOWER(b.linkUrl) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Banner> findAllWithFilters(
             @Param("status") Status status,
             @Param("search") String search,
@@ -51,7 +51,7 @@ public interface BannerRepository extends JpaRepository<Banner, UUID> {
             "WHERE b.isDeleted = false " +
             "AND (:status IS NULL OR b.status = :status) " +
             "AND (:search IS NULL OR :search = '' OR " +
-            "     LOWER(bus.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "     LOWER(b.linkUrl) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<Banner> findAllListWithFilters(
             @Param("status") Status status,
             @Param("search") String search,
