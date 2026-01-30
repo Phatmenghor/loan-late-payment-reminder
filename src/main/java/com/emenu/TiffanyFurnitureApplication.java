@@ -10,10 +10,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableScheduling
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 @EnableTransactionManagement
-public class EMenuApplication {
+public class TiffanyFurnitureApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(EMenuApplication.class, args);
+		SpringApplication.run(TiffanyFurnitureApplication.class, args);
 		System.out.println("""
             
             🇰🇭 Cambodia E-Menu Platform Started Successfully! 🇰🇭
