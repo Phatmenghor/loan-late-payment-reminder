@@ -28,31 +28,31 @@ public interface ProductImageMapper {
     List<ProductImageDto> toDtos(List<ProductImage> entities);
 
     default List<ProductImage> toEntitiesFromUpdate(List<ProductImageUpdateDto> dtos) {
-if (dtos == null) {
-    return List.of();
-}
-return dtos.stream()
-        .filter(dto -> !dto.shouldDelete() && dto.isNew())
-        .map(this::toEntityFromUpdate)
-        .toList();
+        if (dtos == null) {
+            return List.of();
+        }
+        return dtos.stream()
+                .filter(dto -> !dto.shouldDelete() && dto.isNew())
+                .map(this::toEntityFromUpdate)
+                .toList();
     }
 
     default List<java.util.UUID> getIdsToDelete(List<ProductImageUpdateDto> dtos) {
-if (dtos == null) {
-    return List.of();
-}
-return dtos.stream()
-        .filter(dto -> dto.shouldDelete() && dto.isExisting())
-        .map(ProductImageUpdateDto::getId)
-        .toList();
+        if (dtos == null) {
+            return List.of();
+        }
+        return dtos.stream()
+                .filter(dto -> dto.shouldDelete() && dto.isExisting())
+                .map(ProductImageUpdateDto::getId)
+                .toList();
     }
 
     default List<ProductImageUpdateDto> getExistingToUpdate(List<ProductImageUpdateDto> dtos) {
-if (dtos == null) {
-    return List.of();
-}
-return dtos.stream()
-        .filter(dto -> !dto.shouldDelete() && dto.isExisting())
-        .toList();
+        if (dtos == null) {
+            return List.of();
+        }
+        return dtos.stream()
+                .filter(dto -> !dto.shouldDelete() && dto.isExisting())
+                .toList();
     }
 }

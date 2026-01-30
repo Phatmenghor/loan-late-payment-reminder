@@ -25,7 +25,7 @@ public class PublicCategoryController {
     private final CategoryService categoryService;
 
     /**
-     * Get all categories with filtering (uses current user's business from token)
+     * Get all categories
      */
     @PostMapping("/all")
     public ResponseEntity<ApiResponse<PaginationResponse<CategoryResponse>>> getAllCategories(@Valid @RequestBody CategoryFilterRequest filter) {
@@ -35,7 +35,7 @@ public class PublicCategoryController {
     }
 
     /**
-     * Get all categories with filtering (uses current user's business from token)
+     * Get all categories with filtering
      */
     @PostMapping("/all-data")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllDataCategories(@Valid @RequestBody CategoryAllFilterRequest filter) {

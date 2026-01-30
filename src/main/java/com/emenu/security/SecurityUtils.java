@@ -44,9 +44,6 @@ public class SecurityUtils {
     }
 
     public void validateAccountStatus(User user) {
-        if (user.getAccountStatus() == AccountStatus.SUSPENDED) {
-            throw new ValidationException("Account is suspended");
-        }
 
         if (user.getAccountStatus() == AccountStatus.INACTIVE) {
             throw new ValidationException("Account is inactive");

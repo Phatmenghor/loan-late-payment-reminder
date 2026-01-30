@@ -11,7 +11,5 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class CategoryAllFilterRequest extends BaseAllFilterRequest {
-    @NotNull(message = "Business ID cannot be null")
-    private UUID businessId;
     private Status status;
 }

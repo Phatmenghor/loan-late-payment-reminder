@@ -26,41 +26,35 @@ public interface BannerRepository extends JpaRepository<Banner, UUID> {
      * Finds a non-deleted banner by ID with business details eagerly fetched
      */
     @Query("SELECT b FROM Banner b " +
-           "LEFT JOIN FETCH b.business " +
            "WHERE b.id = :id AND b.isDeleted = false")
     Optional<Banner> findByIdWithBusiness(@Param("id") UUID id);
+
 
     /**
      * Find all banners with dynamic filtering - paginated
      */
     @Query("SELECT DISTINCT b FROM Banner b " +
-           "LEFT JOIN b.business bus " +
-           "WHERE b.isDeleted = false " +
-           "AND (:businessId IS NULL OR b.businessId = :businessId) " +
-           "AND (:status IS NULL OR b.status = :status) " +
-           "AND (:search IS NULL OR :search = '' OR " +
-           "     LOWER(bus.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "WHERE b.isDeleted = false " +
+            "AND (:status IS NULL OR b.status = :status) " +
+            "AND (:search IS NULL OR :search = '' OR " +
+            "     LOWER(bus.name) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Banner> findAllWithFilters(
-        @Param("businessId") UUID businessId,
-        @Param("status") Status status,
-        @Param("search") String search,
-        Pageable pageable
+            @Param("status") Status status,
+            @Param("search") String search,
+            Pageable pageable
     );
 
     /**
      * Find all banners with dynamic filtering - non-paginated
      */
     @Query("SELECT DISTINCT b FROM Banner b " +
-           "LEFT JOIN b.business bus " +
-           "WHERE b.isDeleted = false " +
-           "AND (:businessId IS NULL OR b.businessId = :businessId) " +
-           "AND (:status IS NULL OR b.status = :status) " +
-           "AND (:search IS NULL OR :search = '' OR " +
-           "     LOWER(bus.name) LIKE LOWER(CONCAT('%', :search, '%')))")
-    List<Banner> findAllWithFilters(
-        @Param("businessId") UUID businessId,
-        @Param("status") Status status,
-        @Param("search") String search,
-        Sort sort
+            "WHERE b.isDeleted = false " +
+            "AND (:status IS NULL OR b.status = :status) " +
+            "AND (:search IS NULL OR :search = '' OR " +
+            "     LOWER(bus.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<Banner> findAllListWithFilters(
+            @Param("status") Status status,
+            @Param("search") String search,
+            Sort sort
     );
 }

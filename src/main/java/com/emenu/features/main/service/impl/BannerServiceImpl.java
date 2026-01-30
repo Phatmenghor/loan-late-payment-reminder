@@ -14,6 +14,7 @@ import com.emenu.features.main.repository.BannerRepository;
 import com.emenu.features.main.service.BannerService;
 import com.emenu.security.SecurityUtils;
 import com.emenu.shared.dto.PaginationResponse;
+import com.emenu.shared.mapper.PaginationMapper;
 import com.emenu.shared.pagination.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,24 +35,17 @@ public class BannerServiceImpl implements BannerService {
     private final BannerRepository bannerRepository;
     private final BannerMapper bannerMapper;
     private final SecurityUtils securityUtils;
-    private final com.emenu.shared.mapper.PaginationMapper paginationMapper;
+    private final PaginationMapper paginationMapper;
 
     @Override
     public BannerResponse createBanner(BannerCreateRequest request) {
         log.info("Creating banner for current user's business");
 
-        User currentUser = securityUtils.getCurrentUser();
-        if (currentUser.getBusinessId() == null) {
-            throw new ValidationException("User is not associated with any business");
-        }
-
         Banner banner = bannerMapper.toEntity(request);
-        banner.setBusinessId(currentUser.getBusinessId());
 
         Banner savedBanner = bannerRepository.save(banner);
 
-        log.info("Banner created successfully: {} for business: {}", 
-                savedBanner.getId(), currentUser.getBusinessId());
+        log.info("Banner created successfully: {}", savedBanner.getId());
         return bannerMapper.toResponse(savedBanner);
     }
 
@@ -63,7 +57,6 @@ public class BannerServiceImpl implements BannerService {
         );
 
         Page<Banner> bannerPage = bannerRepository.findAllWithFilters(
-                filter.getBusinessId(),
                 filter.getStatus(),
                 filter.getSearch(),
                 pageable
@@ -74,8 +67,7 @@ public class BannerServiceImpl implements BannerService {
     @Override
     @Transactional(readOnly = true)
     public List<BannerResponse> getAllItemBanners(BannerAllFilterRequest filter) {
-        List<Banner> banners = bannerRepository.findAllWithFilters(
-                filter.getBusinessId(),
+        List<Banner> banners = bannerRepository.findAllListWithFilters(
                 filter.getStatus(),
                 filter.getSearch(),
                 PaginationUtils.createSort(filter.getSortBy(), filter.getSortDirection())
@@ -89,7 +81,7 @@ public class BannerServiceImpl implements BannerService {
     public BannerResponse getBannerById(UUID id) {
         Banner banner = bannerRepository.findByIdWithBusiness(id)
                 .orElseThrow(() -> new NotFoundException("Banner not found"));
-        
+
         return bannerMapper.toResponse(banner);
     }
 

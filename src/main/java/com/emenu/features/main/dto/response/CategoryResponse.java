@@ -10,8 +10,6 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class CategoryResponse extends BaseAuditResponse {
-    private UUID businessId;
-    private String businessName;
     private String name;
     private String imageUrl;
     private Status status;

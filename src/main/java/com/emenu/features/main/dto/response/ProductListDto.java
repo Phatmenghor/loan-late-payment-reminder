@@ -32,7 +32,5 @@ public class ProductListDto extends BaseAuditResponse {
 
     private Integer quantityInCart;
 
-    private UUID businessId;
     private UUID categoryId;
-    private UUID brandId;
 }

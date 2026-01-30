@@ -10,7 +10,6 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class BannerFilterRequest extends BaseFilterRequest {
-    private UUID businessId;
     private Status status;
 }
 

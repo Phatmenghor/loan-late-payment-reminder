@@ -26,10 +26,8 @@ public class PublicProductController {
     @PostMapping("/all")
     public ResponseEntity<ApiResponse<PaginationResponse<ProductListDto>>> getAllPublicProducts(
             @Valid @RequestBody ProductFilterDto filter) {
-        
         log.info("Public get all - Page: {}, Size: {}", filter.getPageNo(), filter.getPageSize());
         PaginationResponse<ProductListDto> products = productService.getAllProducts(filter);
-        
         return ResponseEntity.ok(ApiResponse.success(
             String.format("Found %d products", products.getTotalElements()),
             products
@@ -39,10 +37,8 @@ public class PublicProductController {
     @PostMapping("/all-data")
     public ResponseEntity<ApiResponse<List<ProductListDto>>> getAllDataPublicProducts(
             @Valid @RequestBody ProductFilterDto filter) {
-
         log.info("Public get all data is fetching");
         List<ProductListDto> products = productService.getAllDataProducts(filter);
-
         return ResponseEntity.ok(ApiResponse.success(
                 "All products retrieved successfully",
                 products
@@ -52,9 +48,7 @@ public class PublicProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductDetailDto>> getPublicProductById(@PathVariable UUID id) {
         log.info("Get public product: {}", id);
-        
         ProductDetailDto product = productService.getProductByIdPublic(id);
-        
         return ResponseEntity.ok(ApiResponse.success("Product retrieved successfully", product));
     }
 }

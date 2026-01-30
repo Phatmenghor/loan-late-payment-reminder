@@ -11,21 +11,7 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(name = "categories", indexes = {
-        // ✅ ESSENTIAL INDEXES ONLY for Category
-
-        // 1. Business categories (most common in product filtering)
-        @Index(name = "idx_categories_business_deleted",
-                columnList = "business_id, is_deleted"),
-
-        // 2. Business categories by status
-        @Index(name = "idx_categories_business_status_deleted",
-                columnList = "business_id, status, is_deleted"),
-
-        // 3. Base soft delete index
-        @Index(name = "idx_categories_deleted",
-                columnList = "is_deleted")
-})
+@Table(name = "categories")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor

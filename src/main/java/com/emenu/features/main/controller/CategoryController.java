@@ -27,7 +27,7 @@ public class CategoryController {
     private final SecurityUtils securityUtils;
 
     /**
-     * Create new category (uses current user's business from token)
+     * Create new category
      */
     @PostMapping
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryCreateRequest request) {
@@ -38,23 +38,11 @@ public class CategoryController {
     }
 
     /**
-     * Get all categories with filtering (uses current user's business from token)
+     * Get all categories w
      */
     @PostMapping("/all")
     public ResponseEntity<ApiResponse<PaginationResponse<CategoryResponse>>> getAllCategories(@Valid @RequestBody CategoryFilterRequest filter) {
-        log.info("Getting all categories for current user's business");
-        PaginationResponse<CategoryResponse> categories = categoryService.getAllCategories(filter);
-        return ResponseEntity.ok(ApiResponse.success("Categories retrieved successfully", categories));
-    }
-
-    /**
-     * Get all categories with filtering (uses current user's business from token)
-     */
-    @PostMapping("/my-business/all")
-    public ResponseEntity<ApiResponse<PaginationResponse<CategoryResponse>>> getMyBusinessAllCategories(@Valid @RequestBody CategoryFilterRequest filter) {
-        log.info("Getting my categories for current user's business");
-        UUID businessId = securityUtils.getCurrentUserBusinessId();
-        filter.setBusinessId(businessId);
+        log.info("Getting all categories");
         PaginationResponse<CategoryResponse> categories = categoryService.getAllCategories(filter);
         return ResponseEntity.ok(ApiResponse.success("Categories retrieved successfully", categories));
     }

@@ -16,8 +16,7 @@ public class ProductUpdateDto {
     private String name;
     private String description;
     private UUID categoryId;
-    private UUID brandId;
-    
+
     @DecimalMin(value = "0.0", message = "Price must be non-negative")
     private BigDecimal price;
     
