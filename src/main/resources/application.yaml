@@ -1,13 +1,12 @@
-# application.yml - Cambodia E-Menu Platform Configuration
 spring:
   application:
-    name: cambodia-emenu-platform
+    name: cambodia_tiffany_furniture
   profiles:
     active: dev
 
   # Database Configuration
   datasource:
-    url: jdbc:postgresql://174.138.17.214:5432/e_menu_platform
+    url: jdbc:postgresql://174.138.17.214:5432/tiffany_furniture
     username: kithya
     password: DE6Y6S30XO3KPTH
     driver-class-name: org.postgresql.Driver
@@ -42,7 +41,7 @@ server:
 
 # JWT Configuration
 jwt:
-  secret: da2bd42bef8f9f957d647ed13571d35b59c7055fb723eacdb05154878da17d77d3180385fc232cab38bded0fc7dbda0d439cc275e91164ade266d64d50633bc7
+  secret: da2bd42bef8f9f957d647ed13571df35b59c7055fb723eacdb05154878da17d77d3180385fc232cab38bded0fc7dbda0d439cc275e91164ade266d64d50633bc7
   # Access token expiration: 10 minutes (600000 milliseconds)
   expiration: 1111111111
   # Refresh token expiration: 1 month (2592000000 milliseconds = 30 days)
@@ -66,9 +65,9 @@ telegram:
 
 # Application Configuration
 app:
-  name: "Cambodia E-Menu Platform"
+  name: "Tiffany Furniture Platform"
   version: "1.0.0"
-  description: "Restaurant Management Platform for Cambodia"
+  description: "Tiffany Furniture Platform for Cambodia"
 
   # Data Initialization
   init:
@@ -80,20 +79,6 @@ app:
   security:
     token-cleanup:
       enabled: true
-
-  # Social Authentication Configuration
-  social:
-    telegram:
-      bot-token: "8464259107:AAHdIC3EZb_3uID4vnhteY6PYtmO9WGDBjU"
-      enabled: true
-    google:
-      client-id: "${GOOGLE_CLIENT_ID:}"
-      client-secret: "${GOOGLE_CLIENT_SECRET:}"
-      enabled: true
-    facebook:
-      app-id: "${FACEBOOK_APP_ID:}"
-      app-secret: "${FACEBOOK_APP_SECRET:}"
-      enabled: false
 
 # Logging Configuration
 logging:

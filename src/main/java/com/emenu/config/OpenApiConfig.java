@@ -18,13 +18,13 @@ import java.time.LocalTime;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${app.name:E-Menu SaaS Platform}")
+    @Value("${app.name:Tiffany Furniture Platform}")
     private String appName;
 
     @Value("${app.version:1.0.0}")
     private String appVersion;
 
-    @Value("${app.description:Simple E-Menu Platform for Restaurant Management}")
+    @Value("${app.description:Tiffany Furniture Platform for Restaurant Management}")
     private String appDescription;
 
     @Value("${server.url:http://localhost:8080}")
@@ -40,8 +40,8 @@ public class OpenApiConfig {
                         .description(appDescription)
                         .version(appVersion)
                         .contact(new Contact()
-                                .name("E-Menu Platform Support")
-                                .email("support@emenu-platform.com")
+                                .name("Tiffany Furniture Support")
+                                .email("support@tiffany-furniture.com")
                                 .url("https://emenu-platform.com/support"))
                         .license(new License()
                                 .name("Proprietary")
