@@ -3,7 +3,6 @@ package com.emenu.features.auth.controller;
 import com.emenu.features.auth.dto.request.*;
 import com.emenu.features.auth.dto.response.*;
 import com.emenu.features.auth.service.AuthService;
-import com.emenu.features.auth.service.SocialAuthService;
 import com.emenu.shared.dto.ApiResponse;
 import com.emenu.shared.utils.ClientIpUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final SocialAuthService socialAuthService;
 
     /**
      * Authenticates a user with their credentials
@@ -52,36 +50,6 @@ public class AuthController {
         log.info("Refresh token request");
         RefreshTokenResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
-    }
-
-    @PostMapping("/social/authenticate")
-    public ResponseEntity<ApiResponse<SocialAuthResponse>> authenticateSocial(
-            @Valid @RequestBody SocialAuthRequest request,
-            HttpServletRequest httpRequest) {
-        log.info("Social authentication: provider={}, userType={}", request.getProvider(), request.getUserType());
-
-        request.setIpAddress(ClientIpUtils.getClientIp(httpRequest));
-        request.setDeviceInfo(ClientIpUtils.getUserAgent(httpRequest));
-
-        SocialAuthResponse response = socialAuthService.authenticate(request);
-        return ResponseEntity.ok(ApiResponse.success("Authentication successful", response));
-    }
-
-    @PostMapping("/social/sync")
-    public ResponseEntity<ApiResponse<SocialSyncResponse>> syncSocialAccount(
-            @Valid @RequestBody SocialAuthRequest request) {
-        log.info("Sync social account: provider={}", request.getProvider());
-
-        SocialSyncResponse response = socialAuthService.syncSocialAccount(request);
-        return ResponseEntity.ok(ApiResponse.success("Social account synced successfully", response));
-    }
-
-    @DeleteMapping("/social/sync/{provider}")
-    public ResponseEntity<ApiResponse<SocialSyncResponse>> unsyncSocialAccount(@PathVariable String provider) {
-        log.info("Unsync social account: provider={}", provider);
-
-        SocialSyncResponse response = socialAuthService.unsyncSocialAccount(provider);
-        return ResponseEntity.ok(ApiResponse.success("Social account unsynced successfully", response));
     }
 
 }

@@ -1,6 +1,5 @@
 package com.emenu.features.auth.dto.response;
 
-import com.emenu.enums.user.UserType;
 import com.emenu.shared.dto.BaseAuditResponse;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -13,5 +12,4 @@ public class RoleResponse extends BaseAuditResponse {
     private String name;
     private String description;
     private UUID businessId;
-    private UserType userType;
 }

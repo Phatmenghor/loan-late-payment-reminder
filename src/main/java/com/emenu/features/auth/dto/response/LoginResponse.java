@@ -1,6 +1,5 @@
 package com.emenu.features.auth.dto.response;
 
-import com.emenu.enums.user.UserType;
 import lombok.Data;
 
 import java.util.List;

@@ -1,7 +1,6 @@
 package com.emenu.config;
 
 import com.emenu.enums.user.AccountStatus;
-import com.emenu.enums.user.UserType;
 import com.emenu.features.auth.models.Role;
 import com.emenu.features.auth.models.User;
 import com.emenu.features.auth.repository.RoleRepository;

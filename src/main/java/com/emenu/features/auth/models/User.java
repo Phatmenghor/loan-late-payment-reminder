@@ -1,14 +1,15 @@
 package com.emenu.features.auth.models;
 
 import com.emenu.enums.user.AccountStatus;
-import com.emenu.enums.user.UserType;
 import com.emenu.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.hibernate.usertype.UserType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,19 +46,8 @@ public class User extends BaseUUIDEntity {
     private String profileImageUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "user_type", nullable = false)
-    private UserType userType;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
-
-    @Column(name = "business_id")
-    private UUID businessId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "business_id", insertable = false, updatable = false)
-    private Business business;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -67,50 +57,11 @@ public class User extends BaseUUIDEntity {
     )
     private List<Role> roles;
 
-    @Column(name = "position")
-    private String position;
-
-    @Column(name = "address")
-    private String address;
-
-    @Column(name = "notes")
-    private String notes;
-
-    // Telegram integration fields
-    @Column(name = "telegram_id", unique = true)
-    private Long telegramId;
-
-    @Column(name = "telegram_username")
-    private String telegramUsername;
-
-    @Column(name = "telegram_first_name")
-    private String telegramFirstName;
-
-    @Column(name = "telegram_last_name")
-    private String telegramLastName;
-
-    @Column(name = "telegram_synced_at")
-    private java.time.LocalDateTime telegramSyncedAt;
-
-    // Google OAuth integration fields
-    @Column(name = "google_id")
-    private String googleId;
-
-    @Column(name = "google_email")
-    private String googleEmail;
-
-    @Column(name = "google_synced_at")
-    private java.time.LocalDateTime googleSyncedAt;
-
-    // Session tracking fields
     @Column(name = "last_login_at")
-    private java.time.LocalDateTime lastLoginAt;
+    private LocalDateTime lastLoginAt;
 
     @Column(name = "last_active_at")
-    private java.time.LocalDateTime lastActiveAt;
-
-    @Column(name = "active_sessions_count")
-    private Integer activeSessionsCount = 0;
+    private LocalDateTime lastActiveAt;
 
     public String getFullName() {
         if (firstName != null && lastName != null) {
@@ -125,41 +76,5 @@ public class User extends BaseUUIDEntity {
 
     public boolean isActive() {
         return AccountStatus.ACTIVE.equals(accountStatus);
-    }
-
-    public boolean isBusinessUser() {
-        return UserType.BUSINESS_USER.equals(userType);
-    }
-
-    public boolean isCustomer() {
-        return UserType.CUSTOMER.equals(userType);
-    }
-
-    public void syncTelegram(Long telegramId, String telegramUsername, String telegramFirstName, String telegramLastName) {
-        this.telegramId = telegramId;
-        this.telegramUsername = telegramUsername;
-        this.telegramFirstName = telegramFirstName;
-        this.telegramLastName = telegramLastName;
-        this.telegramSyncedAt = java.time.LocalDateTime.now();
-    }
-
-    public void unsyncTelegram() {
-        this.telegramId = null;
-        this.telegramUsername = null;
-        this.telegramFirstName = null;
-        this.telegramLastName = null;
-        this.telegramSyncedAt = null;
-    }
-
-    public void syncGoogle(String googleId, String googleEmail) {
-        this.googleId = googleId;
-        this.googleEmail = googleEmail;
-        this.googleSyncedAt = java.time.LocalDateTime.now();
-    }
-
-    public void unsyncGoogle() {
-        this.googleId = null;
-        this.googleEmail = null;
-        this.googleSyncedAt = null;
     }
 }

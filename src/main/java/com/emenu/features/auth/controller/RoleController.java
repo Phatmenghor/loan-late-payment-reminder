@@ -18,11 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Role Management Controller
- * Provides CRUD endpoints for role management.
- * Supports filtering by businessId, userTypes, search, and includeAll (soft-deleted).
- */
 @RestController
 @RequestMapping("/api/v1/roles")
 @RequiredArgsConstructor

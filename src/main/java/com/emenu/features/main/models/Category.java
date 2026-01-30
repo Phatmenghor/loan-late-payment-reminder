@@ -1,7 +1,6 @@
 package com.emenu.features.main.models;
 
 import com.emenu.enums.common.Status;
-import com.emenu.features.auth.models.Business;
 import com.emenu.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -32,13 +31,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Category extends BaseUUIDEntity {
-
-    @Column(name = "business_id", nullable = false)
-    private UUID businessId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "business_id", insertable = false, updatable = false)
-    private Business business;
 
     @Column(name = "name", nullable = false)
     private String name;

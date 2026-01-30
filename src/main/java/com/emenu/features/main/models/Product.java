@@ -2,7 +2,6 @@ package com.emenu.features.main.models;
 
 import com.emenu.enums.product.ProductStatus;
 import com.emenu.enums.product.PromotionType;
-import com.emenu.features.auth.models.Business;
 import com.emenu.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

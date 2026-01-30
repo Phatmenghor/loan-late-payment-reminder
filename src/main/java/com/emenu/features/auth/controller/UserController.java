@@ -38,15 +38,6 @@ public class UserController {
     }
 
     /**
-     * Retrieves a test business owner token for development purposes
-     */
-    @PostMapping("business-token")
-    public ResponseEntity<String> getMyBusinessToken() {
-        log.info("Get my business token");
-        return ResponseEntity.ok("eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwaGF0bWVuZ2hvcjIwQGdtYWlsLmNvbSIsInJvbGVzIjoiUk9MRV9CVVNJTkVTU19PV05FUiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjkxNDIyNDgsImV4cCI6MTc3MDI1MzM1OX0.GLh9iFm0PQKj-1IniNDC1HuaGrMGW9cVUKNoL3PiTEBD8jvNLEYozR75EkDrr3NkR98g-2z6wdKgzYUshSAu-w");
-    }
-
-    /**
      * Retrieves the current authenticated user's profile
      */
     @GetMapping("/profile")

@@ -1,7 +1,6 @@
 package com.emenu.features.auth.dto.filter;
 
 import com.emenu.enums.user.AccountStatus;
-import com.emenu.enums.user.UserType;
 import com.emenu.shared.dto.BaseFilterRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

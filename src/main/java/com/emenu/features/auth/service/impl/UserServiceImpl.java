@@ -1,26 +1,24 @@
 package com.emenu.features.auth.service.impl;
 
 import com.emenu.enums.user.AccountStatus;
-import com.emenu.enums.user.UserType;
 import com.emenu.exception.custom.ValidationException;
 import com.emenu.features.auth.dto.filter.UserFilterRequest;
 import com.emenu.features.auth.dto.request.UserCreateRequest;
 import com.emenu.features.auth.dto.response.UserResponse;
 import com.emenu.features.auth.dto.update.UserUpdateRequest;
 import com.emenu.features.auth.mapper.UserMapper;
-import com.emenu.features.auth.models.Business;
 import com.emenu.features.auth.models.Role;
 import com.emenu.features.auth.models.User;
-import com.emenu.features.auth.repository.BusinessRepository;
 import com.emenu.features.auth.repository.RoleRepository;
 import com.emenu.features.auth.repository.UserRepository;
-import com.emenu.features.auth.service.BusinessService;
 import com.emenu.features.auth.service.UserService;
 import com.emenu.security.SecurityUtils;
 import com.emenu.shared.dto.PaginationResponse;
+import com.emenu.shared.mapper.PaginationMapper;
 import com.emenu.shared.pagination.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.usertype.UserType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,12 +36,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final BusinessRepository businessRepository;
-    private final BusinessService businessService;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
-    private final com.emenu.shared.mapper.PaginationMapper paginationMapper;
+    private final PaginationMapper paginationMapper;
 
     /**
      * Creates a new user with roles and business association
@@ -59,48 +55,18 @@ public class UserServiceImpl implements UserService {
         User user = userMapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        if (request.getBusinessId() != null) {
-            Business business = businessRepository.findByIdAndIsDeletedFalse(request.getBusinessId())
-                    .orElseThrow(() -> new ValidationException("Business not found"));
-            user.setBusinessId(business.getId());
-        }
-
-        // Validate business users must have a business ID
-        if (request.getUserType() == UserType.BUSINESS_USER && request.getBusinessId() == null) {
-            throw new ValidationException("Business ID is required for BUSINESS_USER type");
-        }
-
         List<Role> roles = roleRepository.findByNameInAndIsDeletedFalse(request.getRoles());
         if (roles.size() != request.getRoles().size()) {
             throw new ValidationException("One or more roles not found");
         }
 
-        // Validate role-userType compatibility
-        validateRoleUserTypeCompatibility(roles, request.getUserType());
-
         user.setRoles(roles);
 
         User savedUser = userRepository.save(user);
-        log.info("User created: {} with type: {} and roles: {}",
-                savedUser.getUserIdentifier(), savedUser.getUserType(), request.getRoles());
-
+        log.info("User created: {}", savedUser.getUserIdentifier());
         return userMapper.toResponse(savedUser);
     }
 
-    /**
-     * Validates that all roles are compatible with the user type
-     */
-    private void validateRoleUserTypeCompatibility(List<Role> roles, UserType userType) {
-        for (Role role : roles) {
-            if (!role.isCompatibleWithUserType(userType)) {
-                throw new ValidationException(
-                        String.format("Role '%s' is not compatible with user type '%s'. " +
-                                "This role is for '%s' users.",
-                                role.getName(), userType, role.getUserType())
-                );
-            }
-        }
-    }
 
     /**
      * Retrieves all users with filtering and pagination support
@@ -108,26 +74,17 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public PaginationResponse<UserResponse> getAllUsers(UserFilterRequest request) {
-        User currentUser = securityUtils.getCurrentUser();
-        if (currentUser.isBusinessUser() && request.getBusinessId() == null) {
-            request.setBusinessId(currentUser.getBusinessId());
-        }
 
         Pageable pageable = PaginationUtils.createPageable(
                 request.getPageNo(), request.getPageSize(), request.getSortBy(), request.getSortDirection()
         );
 
-        // Convert empty lists to null to skip filtering
-        List<UserType> userTypes = (request.getUserTypes() != null && !request.getUserTypes().isEmpty())
-                ? request.getUserTypes() : null;
         List<AccountStatus> accountStatuses = (request.getAccountStatuses() != null && !request.getAccountStatuses().isEmpty())
                 ? request.getAccountStatuses() : null;
         List<String> roles = (request.getRoles() != null && !request.getRoles().isEmpty())
                 ? request.getRoles() : null;
 
         Page<User> userPage = userRepository.searchUsers(
-                request.getBusinessId(),
-                userTypes,
                 accountStatuses,
                 roles,
                 request.getSearch(),
@@ -158,20 +115,12 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndIsDeletedFalse(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (request.getBusinessId() != null && !request.getBusinessId().equals(user.getBusinessId())) {
-            Business business = businessRepository.findByIdAndIsDeletedFalse(request.getBusinessId())
-                    .orElseThrow(() -> new ValidationException("Business not found"));
-            user.setBusinessId(business.getId());
-        }
 
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
             List<Role> roles = roleRepository.findByNameInAndIsDeletedFalse(request.getRoles());
             if (roles.size() != request.getRoles().size()) {
                 throw new ValidationException("One or more roles not found");
             }
-
-            // Validate role-userType compatibility
-            validateRoleUserTypeCompatibility(roles, user.getUserType());
 
             user.getRoles().clear();
             user.getRoles().addAll(roles);

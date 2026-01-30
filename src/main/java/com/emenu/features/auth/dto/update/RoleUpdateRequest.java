@@ -1,6 +1,5 @@
 package com.emenu.features.auth.dto.update;
 
-import com.emenu.enums.user.UserType;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 

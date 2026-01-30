@@ -1,6 +1,5 @@
 package com.emenu.features.auth.service.impl;
 
-import com.emenu.enums.user.UserType;
 import com.emenu.exception.custom.ValidationException;
 import com.emenu.features.auth.dto.request.AdminPasswordResetRequest;
 import com.emenu.features.auth.dto.request.LoginRequest;
@@ -11,23 +10,20 @@ import com.emenu.features.auth.dto.response.LoginResponse;
 import com.emenu.features.auth.dto.response.RefreshTokenResponse;
 import com.emenu.features.auth.dto.response.UserResponse;
 import com.emenu.features.auth.mapper.UserMapper;
-import com.emenu.features.auth.models.Business;
 import com.emenu.features.auth.models.RefreshToken;
 import com.emenu.features.auth.models.Role;
 import com.emenu.features.auth.models.User;
-import com.emenu.features.auth.repository.BusinessRepository;
 import com.emenu.features.auth.repository.RoleRepository;
 import com.emenu.features.auth.repository.UserRepository;
 import com.emenu.features.auth.service.AuthService;
 import com.emenu.features.auth.service.RefreshTokenService;
-import com.emenu.features.auth.service.UserSessionService;
-import com.emenu.features.auth.service.UserValidationService;
 import com.emenu.security.SecurityUtils;
 import com.emenu.security.jwt.JWTGenerator;
 import com.emenu.security.jwt.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.usertype.UserType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -48,7 +44,6 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final BusinessRepository businessRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -56,8 +51,6 @@ public class AuthServiceImpl implements AuthService {
     private final SecurityUtils securityUtils;
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenService refreshTokenService;
-    private final UserSessionService userSessionService;
-    private final UserValidationService userValidationService;
 
     /**
      * Authenticates a user and generates a JWT token with context-aware user lookup
@@ -81,24 +74,6 @@ public class AuthServiceImpl implements AuthService {
 
             // Validate account status
             securityUtils.validateAccountStatus(user);
-
-            // Validate business subscription and status for business users
-            if (user.isBusinessUser() && user.getBusinessId() != null) {
-                Business business = businessRepository.findById(user.getBusinessId())
-                        .orElseThrow(() -> new ValidationException("Business not found"));
-
-                // Check if business is active
-                if (!business.isActive()) {
-                    log.warn("Login denied: Business is not active - {}", business.getStatus());
-                    throw new ValidationException("Your business account is currently " + business.getStatus() + ". Please contact support.");
-                }
-
-                // Check if business has active subscription
-                if (!business.hasActiveSubscription()) {
-                    log.warn("Login denied: Business subscription is not active");
-                    throw new ValidationException("Your business subscription has expired. Please renew your subscription to continue.");
-                }
-            }
 
             // Generate access token
             String accessToken = jwtGenerator.generateAccessToken(authentication);

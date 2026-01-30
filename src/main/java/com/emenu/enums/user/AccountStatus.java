@@ -6,8 +6,7 @@ import lombok.Getter;
 public enum AccountStatus {
     ACTIVE("Active"),
     INACTIVE("Inactive"),
-    LOCKED("Locked"),
-    SUSPENDED("Suspended");
+    LOCKED("Locked");
 
     private final String description;
 

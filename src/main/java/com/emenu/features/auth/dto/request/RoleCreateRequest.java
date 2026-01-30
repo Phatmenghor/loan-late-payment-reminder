@@ -1,6 +1,5 @@
 package com.emenu.features.auth.dto.request;
 
-import com.emenu.enums.user.UserType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -17,9 +16,4 @@ public class RoleCreateRequest {
 
     @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
-
-    private UUID businessId;
-    
-    @NotNull(message = "User type is required")
-    private UserType userType;
 }

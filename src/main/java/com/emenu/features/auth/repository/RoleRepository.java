@@ -1,7 +1,7 @@
 package com.emenu.features.auth.repository;
 
-import com.emenu.enums.user.UserType;
 import com.emenu.features.auth.models.Role;
+import org.hibernate.usertype.UserType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,28 +31,20 @@ public interface RoleRepository extends JpaRepository<Role, UUID> {
 
     @Query("SELECT r FROM Role r WHERE " +
             "(:includeAll = true OR r.isDeleted = false) " +
-            "AND (:businessId IS NULL OR r.businessId = :businessId) " +
-            "AND (:userTypes IS NULL OR r.userType IN :userTypes) " +
             "AND (:search IS NULL OR :search = '' OR " +
             "LOWER(r.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(r.description) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Role> findAllWithFilters(
-            @Param("businessId") UUID businessId,
-            @Param("userTypes") List<UserType> userTypes,
             @Param("search") String search,
             @Param("includeAll") Boolean includeAll,
             Pageable pageable);
 
     @Query("SELECT r FROM Role r WHERE " +
             "(:includeAll = true OR r.isDeleted = false) " +
-            "AND (:businessId IS NULL OR r.businessId = :businessId) " +
-            "AND (:userTypes IS NULL OR r.userType IN :userTypes) " +
             "AND (:search IS NULL OR :search = '' OR " +
             "LOWER(r.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(r.description) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<Role> findAllListWithFilters(
-            @Param("businessId") UUID businessId,
-            @Param("userTypes") List<UserType> userTypes,
             @Param("search") String search,
             @Param("includeAll") Boolean includeAll);
 }

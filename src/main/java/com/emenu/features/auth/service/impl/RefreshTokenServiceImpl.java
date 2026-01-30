@@ -29,15 +29,11 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public RefreshToken createRefreshToken(User user, String ipAddress, String deviceInfo) {
-        log.info("Creating refresh token for user: {} (type: {}, businessId: {})",
-                user.getUserIdentifier(), user.getUserType(), user.getBusinessId());
+\
 
         // Generate JWT refresh token with userType and businessId
         String tokenString = jwtGenerator.generateRefreshToken(
-                user.getUserIdentifier(),
-                user.getUserType().name(),
-                user.getBusinessId() != null ? user.getBusinessId().toString() : null
-        );
+                user.getUserIdentifier());
 
         // Build helper DTO, then use pure MapStruct mapping
         RefreshTokenCreateHelper helper = RefreshTokenCreateHelper.builder()
