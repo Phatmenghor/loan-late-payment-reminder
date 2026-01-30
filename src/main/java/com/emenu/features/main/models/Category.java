@@ -8,8 +8,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Entity
 @Table(name = "categories")
 @Data
@@ -20,9 +18,6 @@ public class Category extends BaseUUIDEntity {
 
     @Column(name = "name", nullable = false)
     private String name;
-
-    @Column(name = "unit")
-    private String unit;
 
     @Column(name = "image_url")
     private String imageUrl;

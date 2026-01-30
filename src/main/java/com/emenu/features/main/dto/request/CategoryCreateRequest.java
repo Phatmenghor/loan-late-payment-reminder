@@ -10,7 +10,6 @@ public class CategoryCreateRequest {
     @NotBlank(message = "Category name is required")
     private String name;
 
-    private String unit;
     private String imageUrl;
     private Status status = Status.ACTIVE;
 }
