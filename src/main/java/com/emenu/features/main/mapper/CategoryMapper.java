@@ -16,7 +16,6 @@ public interface CategoryMapper {
 
     Category toEntity(CategoryCreateRequest request);
 
-    @Mapping(source = "business.name", target = "businessName")
     CategoryResponse toResponse(Category category);
 
     List<CategoryResponse> toResponseList(List<Category> categories);
@@ -25,6 +24,6 @@ public interface CategoryMapper {
     void updateEntity(CategoryUpdateRequest request, @MappingTarget Category category);
 
     default PaginationResponse<CategoryResponse> toPaginationResponse(Page<Category> categoryPage, PaginationMapper paginationMapper) {
-return paginationMapper.toPaginationResponse(categoryPage, this::toResponseList);
+        return paginationMapper.toPaginationResponse(categoryPage, this::toResponseList);
     }
 }

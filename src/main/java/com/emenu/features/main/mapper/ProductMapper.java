@@ -1,7 +1,6 @@
 package com.emenu.features.main.mapper;
 
 import com.emenu.enums.product.PromotionType;
-import com.emenu.features.main.dto.helper.ProductCreateHelper;
 import com.emenu.features.main.dto.request.ProductCreateDto;
 import com.emenu.features.main.dto.response.ProductDetailDto;
 import com.emenu.features.main.dto.response.ProductListDto;
@@ -13,11 +12,10 @@ import org.mapstruct.*;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
-import java.util.UUID;
 
 @Mapper(componentModel = "spring",
-uses = {ProductImageMapper.class, ProductSizeMapper.class, PaginationMapper.class},
-unmappedTargetPolicy = ReportingPolicy.IGNORE)
+        uses = {ProductImageMapper.class, ProductSizeMapper.class, PaginationMapper.class},
+        unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface ProductMapper {
 
     @Mapping(target = "viewCount", constant = "0L")
@@ -27,28 +25,6 @@ public interface ProductMapper {
     @Mapping(source = "promotionType", target = "promotionType", qualifiedByName = "stringToPromotionType")
     Product toEntity(ProductCreateDto dto);
 
-    /**
-     * Apply business-specific fields to product after creation
-     */
-    @Mapping(target = "businessId", source = "businessId")
-    @Mapping(target = "viewCount", source = "viewCount")
-    @Mapping(target = "favoriteCount", source = "favoriteCount")
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void applyBusinessFields(ProductCreateHelper helper, @MappingTarget Product product);
-
-    /**
-     * Helper method to set business fields on product
-     */
-    default Product setBusinessFields(Product product, UUID businessId) {
-        ProductCreateHelper helper = ProductCreateHelper.builder()
-                .businessId(businessId)
-                .viewCount(0L)
-                .favoriteCount(0L)
-                .build();
-        applyBusinessFields(helper, product);
-        return product;
-    }
-
     @Mapping(target = "viewCount", ignore = true)
     @Mapping(target = "favoriteCount", ignore = true)
     @Mapping(target = "images", ignore = true)
@@ -56,13 +32,14 @@ public interface ProductMapper {
     @Mapping(source = "promotionType", target = "promotionType", qualifiedByName = "stringToPromotionType")
     @AfterMapping
     default void afterUpdate(ProductUpdateDto dto, @MappingTarget Product entity) {
-if (!dto.hasPromotionData()) {
-    entity.setPromotionType(null);
-    entity.setPromotionValue(null);
-    entity.setPromotionFromDate(null);
-    entity.setPromotionToDate(null);
-}
+        if (!dto.hasPromotionData()) {
+            entity.setPromotionType(null);
+            entity.setPromotionValue(null);
+            entity.setPromotionFromDate(null);
+            entity.setPromotionToDate(null);
+        }
     }
+
     void updateEntity(ProductUpdateDto dto, @MappingTarget Product entity);
 
     @Mapping(source = "displayPromotionType", target = "displayPromotionType", qualifiedByName = "promotionTypeToString")
@@ -71,9 +48,7 @@ if (!dto.hasPromotionData()) {
 
     List<ProductListDto> toListDtos(List<Product> products);
 
-    @Mapping(source = "business.name", target = "businessName")
     @Mapping(source = "category.name", target = "categoryName")
-    @Mapping(source = "brand.name", target = "brandName")
     @Mapping(source = "promotionType", target = "promotionType", qualifiedByName = "promotionTypeToString")
     @Mapping(source = "displayPromotionType", target = "displayPromotionType", qualifiedByName = "promotionTypeToString")
     @Mapping(target = "hasPromotion", source = "hasActivePromotion")
@@ -82,25 +57,22 @@ if (!dto.hasPromotionData()) {
 
     @Named("stringToPromotionType")
     default PromotionType stringToPromotionType(String promotionType) {
-if (promotionType == null || promotionType.trim().isEmpty()) {
-    return null;
-}
-try {
-    return PromotionType.valueOf(promotionType.toUpperCase());
-} catch (IllegalArgumentException e) {
-    return null;
-}
+        if (promotionType == null || promotionType.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return PromotionType.valueOf(promotionType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @Named("promotionTypeToString")
     default String promotionTypeToString(PromotionType promotionType) {
-return promotionType != null ? promotionType.name() : null;
+        return promotionType != null ? promotionType.name() : null;
     }
 
-    /**
-     * Convert paginated products to pagination response
-     */
     default PaginationResponse<ProductListDto> toPaginationResponse(Page<Product> page, PaginationMapper paginationMapper) {
-return paginationMapper.toPaginationResponse(page, this::toListDtos);
+        return paginationMapper.toPaginationResponse(page, this::toListDtos);
     }
 }

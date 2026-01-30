@@ -24,26 +24,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Product extends BaseUUIDEntity {
 
-    @Column(name = "business_id", nullable = false)
-    private UUID businessId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "business_id", insertable = false, updatable = false)
-    private Business business;
-
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", insertable = false, updatable = false)
     private Category category;
-
-    @Column(name = "brand_id")
-    private UUID brandId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "brand_id", insertable = false, updatable = false)
-    private Brand brand;
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -125,7 +111,7 @@ public class Product extends BaseUUIDEntity {
             this.hasActivePromotion = isPromotionActive();
         } else {
             this.hasSizes = true;
-            
+
             ProductSize displaySize = sizes.stream()
                     .filter(size -> size != null && !size.getIsDeleted())
                     .filter(ProductSize::isPromotionActive)
@@ -134,7 +120,7 @@ public class Product extends BaseUUIDEntity {
                             .filter(size -> size != null && !size.getIsDeleted())
                             .min((s1, s2) -> s1.getPrice().compareTo(s2.getPrice()))
                             .orElse(null));
-            
+
             if (displaySize != null) {
                 this.displayOriginPrice = displaySize.getPrice();
                 this.displayPromotionType = displaySize.getPromotionType();
@@ -195,15 +181,15 @@ public class Product extends BaseUUIDEntity {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        
+
         if (promotionFromDate != null && now.isBefore(promotionFromDate)) {
             return false;
         }
-        
+
         if (promotionToDate != null && now.isAfter(promotionToDate)) {
             return false;
         }
-        
+
         return true;
     }
 

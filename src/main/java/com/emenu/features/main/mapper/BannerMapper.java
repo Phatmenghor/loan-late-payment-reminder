@@ -16,7 +16,6 @@ public interface BannerMapper {
 
     Banner toEntity(BannerCreateRequest request);
 
-    @Mapping(source = "business.name", target = "businessName")
     BannerResponse toResponse(Banner banner);
 
     List<BannerResponse> toResponseList(List<Banner> banners);
@@ -25,6 +24,6 @@ public interface BannerMapper {
     void updateEntity(BannerUpdateRequest request, @MappingTarget Banner banner);
 
     default PaginationResponse<BannerResponse> toPaginationResponse(Page<Banner> bannerPage, PaginationMapper paginationMapper) {
-return paginationMapper.toPaginationResponse(bannerPage, this::toResponseList);
+        return paginationMapper.toPaginationResponse(bannerPage, this::toResponseList);
     }
 }

@@ -1,7 +1,6 @@
 package com.emenu.features.main.service.impl;
 
 import com.emenu.exception.custom.NotFoundException;
-import com.emenu.exception.custom.ValidationException;
 import com.emenu.features.auth.models.User;
 import com.emenu.features.main.dto.filter.ProductFilterDto;
 import com.emenu.features.main.dto.request.ProductCreateDto;
@@ -24,7 +23,6 @@ import com.emenu.features.main.repository.ProductSizeRepository;
 import com.emenu.features.main.service.ProductService;
 import com.emenu.features.main.utils.ProductFavoriteQueryHelper;
 import com.emenu.features.main.utils.ProductUtils;
-import com.emenu.features.order.utils.CartQueryHelper;
 import com.emenu.security.SecurityUtils;
 import com.emenu.shared.dto.PaginationResponse;
 import com.emenu.shared.mapper.PaginationMapper;
@@ -52,16 +50,10 @@ public class ProductServiceImpl implements ProductService {
     private final SecurityUtils securityUtils;
     private final ProductUtils productUtils;
     private final ProductFavoriteQueryHelper favoriteQueryHelper;
-    private final CartQueryHelper cartQueryHelper;
 
     @Override
     @Transactional(readOnly = true)
     public PaginationResponse<ProductListDto> getAllProducts(ProductFilterDto filter) {
-        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
-        if (currentUser.isPresent() && currentUser.get().isBusinessUser() && filter.getBusinessId() == null) {
-            filter.setBusinessId(currentUser.get().getBusinessId());
-        }
-
         Pageable pageable = PaginationUtils.createPageable(
                 filter.getPageNo(),
                 filter.getPageSize(),
@@ -70,9 +62,7 @@ public class ProductServiceImpl implements ProductService {
         );
 
         Page<Product> productPage = productRepository.findAllWithFilters(
-                filter.getBusinessId(),
                 filter.getCategoryId(),
-                filter.getBrandId(),
                 filter.getStatus(),
                 filter.getHasPromotion(),
                 filter.getMinPrice(),
@@ -87,28 +77,21 @@ public class ProductServiceImpl implements ProductService {
 
         List<ProductListDto> dtoList = productMapper.toListDtos(productPage.getContent());
 
+        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
         if (currentUser.isPresent()) {
             List<UUID> productIds = productPage.getContent().stream()
                     .map(Product::getId)
                     .toList();
 
-            // Get favorite products
             List<UUID> favoriteIds = favoriteQueryHelper.getFavoriteProductIds(
                     currentUser.get().getId(),
                     productIds
             );
             Set<UUID> favoriteSet = new HashSet<>(favoriteIds);
 
-            // Get cart quantities for products
-            Map<UUID, Integer> cartQuantities = cartQueryHelper.getProductQuantitiesInCart(
-                    currentUser.get().getId(),
-                    filter.getBusinessId(),
-                    productIds
-            );
-
             dtoList.forEach(dto -> {
                 dto.setIsFavorited(favoriteSet.contains(dto.getId()));
-                dto.setQuantityInCart(cartQuantities.getOrDefault(dto.getId(), 0));
+                dto.setQuantityInCart(0);
             });
         } else {
             dtoList.forEach(dto -> {
@@ -122,16 +105,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductListDto> getAllDataProducts(ProductFilterDto filter) {
-        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
-
-        if (currentUser.isPresent() && currentUser.get().isBusinessUser() && filter.getBusinessId() == null) {
-            filter.setBusinessId(currentUser.get().getBusinessId());
-        }
-
         List<Product> products = productRepository.findAllWithFilters(
-                filter.getBusinessId(),
                 filter.getCategoryId(),
-                filter.getBrandId(),
                 filter.getStatus(),
                 filter.getHasPromotion(),
                 filter.getMinPrice(),
@@ -146,28 +121,21 @@ public class ProductServiceImpl implements ProductService {
             return dtoList;
         }
 
+        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
         if (currentUser.isPresent()) {
             List<UUID> productIds = products.stream()
                     .map(Product::getId)
                     .toList();
 
-            // Get favorite products
             List<UUID> favoriteIds = favoriteQueryHelper.getFavoriteProductIds(
                     currentUser.get().getId(),
                     productIds
             );
             Set<UUID> favoriteSet = new HashSet<>(favoriteIds);
 
-            // Get cart quantities for products
-            Map<UUID, Integer> cartQuantities = cartQueryHelper.getProductQuantitiesInCart(
-                    currentUser.get().getId(),
-                    filter.getBusinessId(),
-                    productIds
-            );
-
             dtoList.forEach(dto -> {
                 dto.setIsFavorited(favoriteSet.contains(dto.getId()));
-                dto.setQuantityInCart(cartQuantities.getOrDefault(dto.getId(), 0));
+                dto.setQuantityInCart(0);
             });
         } else {
             dtoList.forEach(dto -> {
@@ -179,15 +147,9 @@ public class ProductServiceImpl implements ProductService {
         return dtoList;
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public PaginationResponse<ProductListDto> getAllProductsAdmin(ProductFilterDto filter) {
-        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
-        if (currentUser.isPresent() && currentUser.get().isBusinessUser() && filter.getBusinessId() == null) {
-            filter.setBusinessId(currentUser.get().getBusinessId());
-        }
-
         Pageable pageable = PaginationUtils.createPageable(
                 filter.getPageNo(),
                 filter.getPageSize(),
@@ -196,9 +158,7 @@ public class ProductServiceImpl implements ProductService {
         );
 
         Page<Product> productPage = productRepository.findAllWithFilters(
-                filter.getBusinessId(),
                 filter.getCategoryId(),
-                filter.getBrandId(),
                 filter.getStatus(),
                 filter.getHasPromotion(),
                 filter.getMinPrice(),
@@ -218,24 +178,13 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findByIdWithAllDetails(id)
                 .orElseThrow(() -> new NotFoundException("Product not found: " + id));
 
-        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
-        if (currentUser.isPresent() && currentUser.get().isBusinessUser()) {
-            validateBusinessAccess(product, currentUser.get());
-        }
-
         ProductDetailDto dto = productMapper.toDetailDto(product);
 
+        Optional<User> currentUser = securityUtils.getCurrentUserOptional();
         if (currentUser.isPresent()) {
             boolean isFavorited = favoriteQueryHelper.isFavorited(currentUser.get().getId(), product.getId());
             dto.setIsFavorited(isFavorited);
-
-            // Get cart quantity for this product
-            Map<UUID, Integer> cartQuantities = cartQueryHelper.getProductQuantitiesInCart(
-                    currentUser.get().getId(),
-                    product.getBusinessId(),
-                    List.of(product.getId())
-            );
-            dto.setQuantityInCart(cartQuantities.getOrDefault(product.getId(), 0));
+            dto.setQuantityInCart(0);
         } else {
             dto.setQuantityInCart(0);
         }
@@ -257,14 +206,7 @@ public class ProductServiceImpl implements ProductService {
         if (currentUser.isPresent()) {
             boolean isFavorited = favoriteQueryHelper.isFavorited(currentUser.get().getId(), product.getId());
             dto.setIsFavorited(isFavorited);
-
-            // Get cart quantity for this product
-            Map<UUID, Integer> cartQuantities = cartQueryHelper.getProductQuantitiesInCart(
-                    currentUser.get().getId(),
-                    product.getBusinessId(),
-                    List.of(product.getId())
-            );
-            dto.setQuantityInCart(cartQuantities.getOrDefault(product.getId(), 0));
+            dto.setQuantityInCart(0);
         } else {
             dto.setQuantityInCart(0);
         }
@@ -274,20 +216,16 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDetailDto createProduct(ProductCreateDto request) {
-        User currentUser = securityUtils.getCurrentUser();
-        validateUserBusinessAssociation(currentUser);
-
         Product product = productMapper.toEntity(request);
-        productMapper.setBusinessFields(product, currentUser.getBusinessId());
         product.initializeDisplayFields();
 
         Product savedProduct = productRepository.save(product);
 
         handleProductImages(savedProduct, request.getImages());
-        
+
         if (request.getSizes() != null && !request.getSizes().isEmpty()) {
             handleProductSizes(savedProduct, request.getSizes());
-            
+
             List<ProductSize> sizes = productSizeRepository.findByProductId(savedProduct.getId());
             savedProduct.setSizes(sizes);
             savedProduct.syncDisplayFieldsFromSizes();
@@ -302,9 +240,6 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("Product not found: " + id));
 
-        User currentUser = securityUtils.getCurrentUser();
-        validateBusinessOwnership(product, currentUser);
-
         productMapper.updateEntity(request, product);
 
         if (!product.getHasSizes()) {
@@ -314,9 +249,9 @@ public class ProductServiceImpl implements ProductService {
         Product updatedProduct = productRepository.save(product);
 
         updateProductImages(updatedProduct, request.getImages());
-        
+
         boolean sizesChanged = updateProductSizes(updatedProduct, request.getSizes());
-        
+
         if (sizesChanged) {
             List<ProductSize> sizes = productSizeRepository.findByProductId(updatedProduct.getId());
             updatedProduct.setSizes(sizes);
@@ -331,9 +266,6 @@ public class ProductServiceImpl implements ProductService {
     public ProductDetailDto deleteProduct(UUID id) {
         Product product = productRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("Product not found: " + id));
-
-        User currentUser = securityUtils.getCurrentUser();
-        validateBusinessOwnership(product, currentUser);
 
         product.softDelete();
         Product deletedProduct = productRepository.save(product);
@@ -444,23 +376,5 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return changed;
-    }
-
-    private void validateUserBusinessAssociation(User user) {
-        if (user.getBusinessId() == null) {
-            throw new ValidationException("User is not associated with any business");
-        }
-    }
-
-    private void validateBusinessOwnership(Product product, User user) {
-        if (!product.getBusinessId().equals(user.getBusinessId())) {
-            throw new ValidationException("You can only modify products from your own business");
-        }
-    }
-
-    private void validateBusinessAccess(Product product, User user) {
-        if (user.isBusinessUser() && !product.getBusinessId().equals(user.getBusinessId())) {
-            throw new ValidationException("Access denied to product from different business");
-        }
     }
 }
