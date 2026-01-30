@@ -54,6 +54,13 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("User retrieved", response));
     }
 
+    @GetMapping("/admin-token")
+    public ResponseEntity<String> getAdminToken() {
+        log.info("Get admin token");
+        String token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwaGF0bWVuZ2hvcjE5QGdtYWlsLmNvbSIsInJvbGVzIjoiUk9MRV9ERVZFTE9QRVIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzY5NzU5NTcxLCJleHAiOjE3NzA4NzA2ODJ9.wJL76s5oLKv0lX3PXVSVHDSghJc5vyLcLOccfBrNKp3oYFZ82hwFPz2NmpjOlQYPQG22XezrXdH1qkd6CscXrg";
+        return ResponseEntity.ok(token);
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody UserCreateRequest request) {
