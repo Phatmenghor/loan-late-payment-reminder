@@ -24,12 +24,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Product extends BaseUUIDEntity {
 
-    @Column(name = "category_id", nullable = false)
-    private UUID categoryId;
+    @Column(name = "sub_category_id", nullable = false)
+    private UUID subCategoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", insertable = false, updatable = false)
-    private Category category;
+    @JoinColumn(name = "sub_category_id", insertable = false, updatable = false)
+    private SubCategory subCategory;
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;

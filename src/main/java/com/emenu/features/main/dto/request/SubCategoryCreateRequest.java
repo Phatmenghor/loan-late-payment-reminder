@@ -2,15 +2,20 @@ package com.emenu.features.main.dto.request;
 
 import com.emenu.enums.common.Status;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
-public class CategoryCreateRequest {
-    
-    @NotBlank(message = "Category name is required")
+public class SubCategoryCreateRequest {
+
+    @NotBlank(message = "SubCategory name is required")
     private String name;
 
-    private String unit;
+    @NotNull(message = "Category is required")
+    private UUID categoryId;
+
     private String imageUrl;
     private Status status = Status.ACTIVE;
 }

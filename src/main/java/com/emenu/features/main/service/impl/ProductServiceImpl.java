@@ -62,6 +62,7 @@ public class ProductServiceImpl implements ProductService {
         );
 
         Page<Product> productPage = productRepository.findAllWithFilters(
+                filter.getSubCategoryId(),
                 filter.getCategoryId(),
                 filter.getStatus(),
                 filter.getHasPromotion(),
@@ -106,6 +107,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductListDto> getAllDataProducts(ProductFilterDto filter) {
         List<Product> products = productRepository.findAllWithFilters(
+                filter.getSubCategoryId(),
                 filter.getCategoryId(),
                 filter.getStatus(),
                 filter.getHasPromotion(),
@@ -158,6 +160,7 @@ public class ProductServiceImpl implements ProductService {
         );
 
         Page<Product> productPage = productRepository.findAllWithFilters(
+                filter.getSubCategoryId(),
                 filter.getCategoryId(),
                 filter.getStatus(),
                 filter.getHasPromotion(),

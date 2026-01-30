@@ -21,8 +21,8 @@ public class ProductCreateDto {
     
     private String description;
     
-    @NotNull(message = "Category is required")
-    private UUID categoryId;
+    @NotNull(message = "SubCategory is required")
+    private UUID subCategoryId;
 
     @DecimalMin(value = "0.0", message = "Price must be non-negative")
     private BigDecimal price;

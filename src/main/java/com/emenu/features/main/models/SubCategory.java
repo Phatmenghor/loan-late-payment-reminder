@@ -11,18 +11,22 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "sub_categories")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class Category extends BaseUUIDEntity {
+public class SubCategory extends BaseUUIDEntity {
+
+    @Column(name = "category_id", nullable = false)
+    private UUID categoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", insertable = false, updatable = false)
+    private Category category;
 
     @Column(name = "name", nullable = false)
     private String name;
-
-    @Column(name = "unit")
-    private String unit;
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -31,7 +35,6 @@ public class Category extends BaseUUIDEntity {
     @Column(name = "status", nullable = false)
     private Status status = Status.ACTIVE;
 
-    // Business Methods
     public void activate() {
         this.status = Status.ACTIVE;
     }

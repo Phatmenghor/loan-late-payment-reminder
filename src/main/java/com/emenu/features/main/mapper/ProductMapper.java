@@ -42,13 +42,16 @@ public interface ProductMapper {
 
     void updateEntity(ProductUpdateDto dto, @MappingTarget Product entity);
 
+    @Mapping(source = "subCategory.categoryId", target = "categoryId")
     @Mapping(source = "displayPromotionType", target = "displayPromotionType", qualifiedByName = "promotionTypeToString")
     @Mapping(target = "isFavorited", constant = "false")
     ProductListDto toListDto(Product product);
 
     List<ProductListDto> toListDtos(List<Product> products);
 
-    @Mapping(source = "category.name", target = "categoryName")
+    @Mapping(source = "subCategory.name", target = "subCategoryName")
+    @Mapping(source = "subCategory.categoryId", target = "categoryId")
+    @Mapping(source = "subCategory.category.name", target = "categoryName")
     @Mapping(source = "promotionType", target = "promotionType", qualifiedByName = "promotionTypeToString")
     @Mapping(source = "displayPromotionType", target = "displayPromotionType", qualifiedByName = "promotionTypeToString")
     @Mapping(target = "hasPromotion", source = "hasActivePromotion")

@@ -11,6 +11,7 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class ProductFilterDto extends BaseFilterRequest {
+    private UUID subCategoryId;
     private UUID categoryId;
     private ProductStatus status;
     private Boolean hasPromotion;

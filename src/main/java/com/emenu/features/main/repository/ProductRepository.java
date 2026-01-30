@@ -21,7 +21,8 @@ import java.util.UUID;
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     @Query("SELECT DISTINCT p FROM Product p " +
-            "LEFT JOIN FETCH p.category c " +
+            "LEFT JOIN FETCH p.subCategory sc " +
+            "LEFT JOIN FETCH sc.category c " +
             "LEFT JOIN FETCH p.sizes sz " +
             "WHERE p.id = :id AND p.isDeleted = false " +
             "AND (sz.isDeleted = false OR sz.isDeleted IS NULL)")
@@ -30,8 +31,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Optional<Product> findByIdAndIsDeletedFalse(UUID id);
 
     @Query("SELECT COUNT(p) FROM Product p " +
-            "WHERE p.categoryId = :categoryId AND p.isDeleted = false")
-    long countByCategoryId(@Param("categoryId") UUID categoryId);
+            "WHERE p.subCategoryId = :subCategoryId AND p.isDeleted = false")
+    long countBySubCategoryId(@Param("subCategoryId") UUID subCategoryId);
 
     @Modifying
     @Transactional
@@ -52,9 +53,11 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Page<Product> findUserFavorites(@Param("userId") UUID userId, Pageable pageable);
 
     @Query("SELECT DISTINCT p FROM Product p " +
-            "LEFT JOIN p.category c " +
+            "LEFT JOIN p.subCategory sc " +
+            "LEFT JOIN sc.category c " +
             "WHERE p.isDeleted = false " +
-            "AND (:categoryId IS NULL OR p.categoryId = :categoryId) " +
+            "AND (:subCategoryId IS NULL OR p.subCategoryId = :subCategoryId) " +
+            "AND (:categoryId IS NULL OR sc.categoryId = :categoryId) " +
             "AND (:status IS NULL OR p.status = :status) " +
             "AND (:hasPromotion IS NULL OR p.hasActivePromotion = :hasPromotion) " +
             "AND (:minPrice IS NULL OR p.displayPrice >= :minPrice) " +
@@ -62,8 +65,10 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             "AND (:search IS NULL OR :search = '' OR " +
             "     LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "     LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "     LOWER(sc.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "     LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Product> findAllWithFilters(
+            @Param("subCategoryId") UUID subCategoryId,
             @Param("categoryId") UUID categoryId,
             @Param("status") ProductStatus status,
             @Param("hasPromotion") Boolean hasPromotion,
@@ -74,9 +79,11 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     );
 
     @Query("SELECT DISTINCT p FROM Product p " +
-            "LEFT JOIN p.category c " +
+            "LEFT JOIN p.subCategory sc " +
+            "LEFT JOIN sc.category c " +
             "WHERE p.isDeleted = false " +
-            "AND (:categoryId IS NULL OR p.categoryId = :categoryId) " +
+            "AND (:subCategoryId IS NULL OR p.subCategoryId = :subCategoryId) " +
+            "AND (:categoryId IS NULL OR sc.categoryId = :categoryId) " +
             "AND (:status IS NULL OR p.status = :status) " +
             "AND (:hasPromotion IS NULL OR p.hasActivePromotion = :hasPromotion) " +
             "AND (:minPrice IS NULL OR p.displayPrice >= :minPrice) " +
@@ -84,8 +91,10 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             "AND (:search IS NULL OR :search = '' OR " +
             "     LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "     LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "     LOWER(sc.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "     LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<Product> findAllWithFilters(
+            @Param("subCategoryId") UUID subCategoryId,
             @Param("categoryId") UUID categoryId,
             @Param("status") ProductStatus status,
             @Param("hasPromotion") Boolean hasPromotion,

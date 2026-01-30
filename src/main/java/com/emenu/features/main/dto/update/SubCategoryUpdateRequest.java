@@ -3,10 +3,12 @@ package com.emenu.features.main.dto.update;
 import com.emenu.enums.common.Status;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
-public class CategoryUpdateRequest {
+public class SubCategoryUpdateRequest {
     private String name;
-    private String unit;
+    private UUID categoryId;
     private String imageUrl;
     private Status status;
 }
