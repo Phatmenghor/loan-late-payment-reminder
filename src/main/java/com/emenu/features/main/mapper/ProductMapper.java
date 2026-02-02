@@ -54,7 +54,6 @@ public interface ProductMapper {
     @Mapping(source = "subCategory.category.name", target = "categoryName")
     @Mapping(source = "promotionType", target = "promotionType", qualifiedByName = "promotionTypeToString")
     @Mapping(source = "displayPromotionType", target = "displayPromotionType", qualifiedByName = "promotionTypeToString")
-    @Mapping(target = "hasPromotion", source = "hasActivePromotion")
     @Mapping(target = "isFavorited", constant = "false")
     ProductDetailDto toDetailDto(Product product);
 
