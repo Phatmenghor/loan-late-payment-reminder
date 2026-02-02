@@ -36,16 +36,6 @@ public class ProductFavoriteController {
     }
 
     /**
-     * Remove a specific favorite by ID
-     */
-    @DeleteMapping("/{favoriteId}")
-    public ResponseEntity<ApiResponse<FavoriteToggleDto>> removeFavoriteById(@PathVariable UUID favoriteId) {
-        log.info("Remove favorite by ID: {}", favoriteId);
-        FavoriteToggleDto favoriteToggleDto = favoriteService.removeFavoriteById(favoriteId);
-        return ResponseEntity.ok(ApiResponse.success("Favorite removed successfully", favoriteToggleDto));
-    }
-
-    /**
      * Get paginated list of user's favorite products
      */
     @PostMapping("/my-favorites")
