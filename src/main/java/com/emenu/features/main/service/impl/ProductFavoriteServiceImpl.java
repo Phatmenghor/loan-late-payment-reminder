@@ -86,7 +86,7 @@ public class ProductFavoriteServiceImpl implements ProductFavoriteService {
      * Remove a specific favorite by its ID
      */
     @Override
-    public void removeFavoriteById(UUID favoriteId) {
+    public FavoriteToggleDto removeFavoriteById(UUID favoriteId) {
         User currentUser = securityUtils.getCurrentUser();
         UUID userId = currentUser.getId();
 
@@ -103,6 +103,7 @@ public class ProductFavoriteServiceImpl implements ProductFavoriteService {
         productRepository.decrementFavoriteCount(favorite.getProductId());
 
         log.info("Favorite removed - ID: {}", favoriteId);
+        return favoriteMapper.createToggleResponse(favorite.getProductId(), userId, false, "removed");
     }
 
     /**

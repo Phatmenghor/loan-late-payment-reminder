@@ -20,7 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class ProductFavoriteController {
-    
+
     private final ProductFavoriteService favoriteService;
 
     /**
@@ -39,10 +39,10 @@ public class ProductFavoriteController {
      * Remove a specific favorite by ID
      */
     @DeleteMapping("/{favoriteId}")
-    public ResponseEntity<ApiResponse<Void>> removeFavoriteById(@PathVariable UUID favoriteId) {
+    public ResponseEntity<ApiResponse<FavoriteToggleDto>> removeFavoriteById(@PathVariable UUID favoriteId) {
         log.info("Remove favorite by ID: {}", favoriteId);
-        favoriteService.removeFavoriteById(favoriteId);
-        return ResponseEntity.ok(ApiResponse.success("Favorite removed successfully", null));
+        FavoriteToggleDto favoriteToggleDto = favoriteService.removeFavoriteById(favoriteId);
+        return ResponseEntity.ok(ApiResponse.success("Favorite removed successfully", favoriteToggleDto));
     }
 
     /**
