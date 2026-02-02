@@ -31,7 +31,7 @@ public class ProductDetailDto extends BaseAuditResponse {
     private LocalDateTime displayPromotionToDate;
 
     private Boolean hasSizes;
-    private Boolean hasPromotion;
+    private Boolean hasActivePromotion;
     private String mainImageUrl;
     private Long viewCount;
     private Long favoriteCount;
