@@ -6,13 +6,13 @@ spring:
 
   # Database Configuration
   datasource:
-#    url: jdbc:postgresql://174.138.17.214:5432/tiffany_furniture
-#    username: kithya
-#    password: DE6Y6S30XO3KPTH
+    url: jdbc:postgresql://174.138.17.214:5432/tiffany_furniture
+    username: kithya
+    password: DE6Y6S30XO3KPTH
 
-    url: jdbc:postgresql://192.168.103.106:5432/account_online_testing
-    username: postgres
-    password: 123cp!@#
+#    url: jdbc:postgresql://192.168.103.106:5432/account_online_testing
+#    username: postgres
+#    password: 123cp!@#
 
     driver-class-name: org.postgresql.Driver
     hikari:

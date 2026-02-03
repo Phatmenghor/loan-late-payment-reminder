@@ -45,7 +45,7 @@ public class UserLocationController {
         return ResponseEntity.ok(ApiResponse.success("Location retrieved successfully", location));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/primary")
     public ResponseEntity<ApiResponse<UserLocationResponse>> getLocationPrimary() {
         log.info("Getting my primary location");
         UserLocationResponse location = userLocationService.getMyPrimaryLocations();
