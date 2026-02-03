@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -113,11 +114,14 @@ public class CartServiceImpl implements CartService {
         int totalItems = responseItems.stream().mapToInt(CartItemResponse::getQuantity).sum();
         BigDecimal totalOriginalPrice = responseItems.stream()
                 .map(CartItemResponse::getTotalOriginalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalPayment = responseItems.stream()
                 .map(CartItemResponse::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalDiscount = totalOriginalPrice.subtract(totalPayment);
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalDiscount = totalOriginalPrice.subtract(totalPayment)
+                .setScale(2, RoundingMode.HALF_UP);
 
         return CartSummaryResponse.builder()
                 .items(responseItems)
@@ -150,31 +154,31 @@ public class CartServiceImpl implements CartService {
 
         if (productSize != null) {
             response.setProductSizeName(productSize.getName());
-            response.setOriginalPrice(productSize.getPrice());
-            response.setDisplayPrice(productSize.getFinalPrice());
-            response.setUnitPrice(productSize.getFinalPrice());
+            response.setOriginalPrice(formatPrice(productSize.getPrice()));
+            response.setDisplayPrice(formatPrice(productSize.getFinalPrice()));
+            response.setUnitPrice(formatPrice(productSize.getFinalPrice()));
             response.setHasActivePromotion(productSize.isPromotionActive());
             if (productSize.getPromotionType() != null) {
                 response.setPromotionType(productSize.getPromotionType().name());
             }
-            response.setPromotionValue(productSize.getPromotionValue());
+            response.setPromotionValue(formatPrice(productSize.getPromotionValue()));
             response.setPromotionFromDate(productSize.getPromotionFromDate());
             response.setPromotionToDate(productSize.getPromotionToDate());
         } else if (product != null) {
-            response.setOriginalPrice(product.getDisplayOriginPrice());
-            response.setDisplayPrice(product.getDisplayPrice());
-            response.setUnitPrice(product.getDisplayPrice());
+            response.setOriginalPrice(formatPrice(product.getDisplayOriginPrice()));
+            response.setDisplayPrice(formatPrice(product.getDisplayPrice()));
+            response.setUnitPrice(formatPrice(product.getDisplayPrice()));
             response.setHasActivePromotion(product.getHasActivePromotion());
             if (product.getDisplayPromotionType() != null) {
                 response.setPromotionType(product.getDisplayPromotionType().name());
             }
-            response.setPromotionValue(product.getDisplayPromotionValue());
+            response.setPromotionValue(formatPrice(product.getDisplayPromotionValue()));
             response.setPromotionFromDate(product.getDisplayPromotionFromDate());
             response.setPromotionToDate(product.getDisplayPromotionToDate());
         } else {
-            response.setOriginalPrice(cartItem.getOriginalPrice());
-            response.setDisplayPrice(cartItem.getOriginalPrice());
-            response.setUnitPrice(cartItem.getOriginalPrice());
+            response.setOriginalPrice(formatPrice(cartItem.getOriginalPrice()));
+            response.setDisplayPrice(formatPrice(cartItem.getOriginalPrice()));
+            response.setUnitPrice(formatPrice(cartItem.getOriginalPrice()));
             response.setHasActivePromotion(false);
         }
 
@@ -182,10 +186,17 @@ public class CartServiceImpl implements CartService {
         BigDecimal originalPrice = response.getOriginalPrice() != null ? response.getOriginalPrice() : BigDecimal.ZERO;
         int quantity = response.getQuantity() != null ? response.getQuantity() : 0;
 
-        response.setTotalOriginalPrice(originalPrice.multiply(BigDecimal.valueOf(quantity)));
-        response.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(quantity)));
-        response.setDiscountAmount(response.getTotalOriginalPrice().subtract(response.getTotalPrice()));
+        response.setTotalOriginalPrice(formatPrice(originalPrice.multiply(BigDecimal.valueOf(quantity))));
+        response.setTotalPrice(formatPrice(unitPrice.multiply(BigDecimal.valueOf(quantity))));
+        response.setDiscountAmount(formatPrice(response.getTotalOriginalPrice().subtract(response.getTotalPrice())));
 
         return response;
+    }
+
+    private BigDecimal formatPrice(BigDecimal price) {
+        if (price == null) {
+            return null;
+        }
+        return price.setScale(2, RoundingMode.HALF_UP);
     }
 }
