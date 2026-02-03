@@ -106,13 +106,86 @@ public class CartServiceImpl implements CartService {
 
     private CartSummaryResponse buildCartSummary(UUID userId) {
         List<CartItem> items = cartItemRepository.findByUserIdWithDetails(userId);
-        List<CartItemResponse> responseItems = cartItemMapper.toResponseList(items);
+        List<CartItemResponse> responseItems = items.stream()
+                .map(this::buildCartItemResponse)
+                .toList();
 
-        int totalItems = items.stream().mapToInt(CartItem::getQuantity).sum();
-        BigDecimal totalPrice = items.stream()
-                .map(CartItem::getTotalPrice)
+        int totalItems = responseItems.stream().mapToInt(CartItemResponse::getQuantity).sum();
+        BigDecimal totalOriginalPrice = responseItems.stream()
+                .map(CartItemResponse::getTotalOriginalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalPayment = responseItems.stream()
+                .map(CartItemResponse::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalDiscount = totalOriginalPrice.subtract(totalPayment);
 
-        return new CartSummaryResponse(responseItems, totalItems, totalPrice);
+        return CartSummaryResponse.builder()
+                .items(responseItems)
+                .totalItems(totalItems)
+                .totalOriginalPrice(totalOriginalPrice)
+                .totalDiscount(totalDiscount)
+                .totalPayment(totalPayment)
+                .build();
+    }
+
+    private CartItemResponse buildCartItemResponse(CartItem cartItem) {
+        CartItemResponse response = new CartItemResponse();
+        response.setId(cartItem.getId());
+        response.setCreatedAt(cartItem.getCreatedAt());
+        response.setUpdatedAt(cartItem.getUpdatedAt());
+        response.setCreatedBy(cartItem.getCreatedBy());
+        response.setUpdatedBy(cartItem.getUpdatedBy());
+        response.setProductId(cartItem.getProductId());
+        response.setProductSizeId(cartItem.getProductSizeId());
+        response.setQuantity(cartItem.getQuantity());
+        response.setNote(cartItem.getNote());
+
+        Product product = cartItem.getProduct();
+        ProductSize productSize = cartItem.getProductSize();
+
+        if (product != null) {
+            response.setProductName(product.getName());
+            response.setProductMainImageUrl(product.getMainImageUrl());
+        }
+
+        if (productSize != null) {
+            response.setProductSizeName(productSize.getName());
+            response.setOriginalPrice(productSize.getPrice());
+            response.setDisplayPrice(productSize.getFinalPrice());
+            response.setUnitPrice(productSize.getFinalPrice());
+            response.setHasActivePromotion(productSize.isPromotionActive());
+            if (productSize.getPromotionType() != null) {
+                response.setPromotionType(productSize.getPromotionType().name());
+            }
+            response.setPromotionValue(productSize.getPromotionValue());
+            response.setPromotionFromDate(productSize.getPromotionFromDate());
+            response.setPromotionToDate(productSize.getPromotionToDate());
+        } else if (product != null) {
+            response.setOriginalPrice(product.getDisplayOriginPrice());
+            response.setDisplayPrice(product.getDisplayPrice());
+            response.setUnitPrice(product.getDisplayPrice());
+            response.setHasActivePromotion(product.getHasActivePromotion());
+            if (product.getDisplayPromotionType() != null) {
+                response.setPromotionType(product.getDisplayPromotionType().name());
+            }
+            response.setPromotionValue(product.getDisplayPromotionValue());
+            response.setPromotionFromDate(product.getDisplayPromotionFromDate());
+            response.setPromotionToDate(product.getDisplayPromotionToDate());
+        } else {
+            response.setOriginalPrice(cartItem.getOriginalPrice());
+            response.setDisplayPrice(cartItem.getOriginalPrice());
+            response.setUnitPrice(cartItem.getOriginalPrice());
+            response.setHasActivePromotion(false);
+        }
+
+        BigDecimal unitPrice = response.getUnitPrice() != null ? response.getUnitPrice() : BigDecimal.ZERO;
+        BigDecimal originalPrice = response.getOriginalPrice() != null ? response.getOriginalPrice() : BigDecimal.ZERO;
+        int quantity = response.getQuantity() != null ? response.getQuantity() : 0;
+
+        response.setTotalOriginalPrice(originalPrice.multiply(BigDecimal.valueOf(quantity)));
+        response.setTotalPrice(unitPrice.multiply(BigDecimal.valueOf(quantity)));
+        response.setDiscountAmount(response.getTotalOriginalPrice().subtract(response.getTotalPrice()));
+
+        return response;
     }
 }

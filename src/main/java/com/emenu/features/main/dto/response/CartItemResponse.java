@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -17,6 +18,15 @@ public class CartItemResponse extends BaseAuditResponse {
     private String productSizeName;
     private Integer quantity;
     private BigDecimal originalPrice;
+    private BigDecimal displayPrice;
+    private BigDecimal unitPrice;
+    private BigDecimal totalOriginalPrice;
     private BigDecimal totalPrice;
+    private BigDecimal discountAmount;
+    private String promotionType;
+    private BigDecimal promotionValue;
+    private LocalDateTime promotionFromDate;
+    private LocalDateTime promotionToDate;
+    private Boolean hasActivePromotion;
     private String note;
 }
