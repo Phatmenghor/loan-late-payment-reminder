@@ -59,6 +59,13 @@ public class UserLocationServiceImpl implements UserLocationService {
     }
 
     @Override
+    public UserLocationResponse getMyPrimaryLocations() {
+        User currentUser = securityUtils.getCurrentUser();
+        UserLocation location = userLocationRepository.findPrimaryByUserId(currentUser.getId()).orElseThrow(() -> new NotFoundException("Location not found"));
+        return userLocationMapper.toResponse(location);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public UserLocationResponse getLocationById(UUID id) {
         User currentUser = securityUtils.getCurrentUser();
@@ -98,7 +105,7 @@ public class UserLocationServiceImpl implements UserLocationService {
         if (Boolean.TRUE.equals(location.getIsPrimary())) {
             List<UserLocation> remaining = userLocationRepository.findByUserId(currentUser.getId());
             if (!remaining.isEmpty()) {
-                UserLocation newPrimary = remaining.get(0);
+                UserLocation newPrimary = remaining.getFirst();
                 newPrimary.setIsPrimary(true);
                 userLocationRepository.save(newPrimary);
             }
@@ -106,20 +113,5 @@ public class UserLocationServiceImpl implements UserLocationService {
 
         log.info("User location deleted: {}", id);
         return userLocationMapper.toResponse(deleted);
-    }
-
-    @Override
-    public UserLocationResponse setPrimary(UUID id) {
-        User currentUser = securityUtils.getCurrentUser();
-
-        UserLocation location = userLocationRepository.findByIdAndUserId(id, currentUser.getId())
-                .orElseThrow(() -> new NotFoundException("Location not found"));
-
-        userLocationRepository.clearPrimaryByUserId(currentUser.getId());
-        location.setIsPrimary(true);
-        UserLocation updated = userLocationRepository.save(location);
-
-        log.info("User location set as primary: {}", id);
-        return userLocationMapper.toResponse(updated);
     }
 }

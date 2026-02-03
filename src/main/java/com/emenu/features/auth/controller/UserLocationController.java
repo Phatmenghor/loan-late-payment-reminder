@@ -45,6 +45,13 @@ public class UserLocationController {
         return ResponseEntity.ok(ApiResponse.success("Location retrieved successfully", location));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserLocationResponse>> getLocationPrimary() {
+        log.info("Getting my primary location");
+        UserLocationResponse location = userLocationService.getMyPrimaryLocations();
+        return ResponseEntity.ok(ApiResponse.success("Location primary retrieved successfully", location));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserLocationResponse>> updateLocation(
             @PathVariable UUID id,
@@ -59,12 +66,5 @@ public class UserLocationController {
         log.info("Deleting location: {}", id);
         UserLocationResponse location = userLocationService.deleteLocation(id);
         return ResponseEntity.ok(ApiResponse.success("Location deleted successfully", location));
-    }
-
-    @PutMapping("/{id}/primary")
-    public ResponseEntity<ApiResponse<UserLocationResponse>> setPrimary(@PathVariable UUID id) {
-        log.info("Setting location as primary: {}", id);
-        UserLocationResponse location = userLocationService.setPrimary(id);
-        return ResponseEntity.ok(ApiResponse.success("Location set as primary", location));
     }
 }
