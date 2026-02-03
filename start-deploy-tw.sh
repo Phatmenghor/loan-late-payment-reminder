@@ -13,4 +13,4 @@ docker compose -f $COMPOSE_FILE build backend
 echo "Starting backend..."
 docker compose -f $COMPOSE_FILE up -d backend
 
-echo "✅ Backend is running on port 9090"
+echo "✅ Backend is running on port 7070"
