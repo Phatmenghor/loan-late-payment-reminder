@@ -45,4 +45,10 @@ public interface CartItemRepository extends JpaRepository<CartItem, UUID> {
 
     @Query("SELECT ci.productId FROM CartItem ci WHERE ci.userId = :userId AND ci.isDeleted = false AND ci.productId IN :productIds")
     List<UUID> findProductIdsInCart(@Param("userId") UUID userId, @Param("productIds") List<UUID> productIds);
+
+    @Query("SELECT ci.productId, SUM(ci.quantity) FROM CartItem ci WHERE ci.userId = :userId AND ci.isDeleted = false AND ci.productId IN :productIds GROUP BY ci.productId")
+    List<Object[]> findCartQuantitiesByProductIds(@Param("userId") UUID userId, @Param("productIds") List<UUID> productIds);
+
+    @Query("SELECT COALESCE(SUM(ci.quantity), 0) FROM CartItem ci WHERE ci.userId = :userId AND ci.isDeleted = false AND ci.productId = :productId")
+    Integer findCartQuantityByProductId(@Param("userId") UUID userId, @Param("productId") UUID productId);
 }

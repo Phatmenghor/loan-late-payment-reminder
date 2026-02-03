@@ -17,6 +17,7 @@ import com.emenu.features.main.mapper.ProductSizeMapper;
 import com.emenu.features.main.models.Product;
 import com.emenu.features.main.models.ProductImage;
 import com.emenu.features.main.models.ProductSize;
+import com.emenu.features.main.repository.CartItemRepository;
 import com.emenu.features.main.repository.ProductImageRepository;
 import com.emenu.features.main.repository.ProductRepository;
 import com.emenu.features.main.repository.ProductSizeRepository;
@@ -43,6 +44,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductSizeRepository productSizeRepository;
+    private final CartItemRepository cartItemRepository;
     private final ProductMapper productMapper;
     private final ProductImageMapper productImageMapper;
     private final ProductSizeMapper productSizeMapper;
@@ -90,9 +92,11 @@ public class ProductServiceImpl implements ProductService {
             );
             Set<UUID> favoriteSet = new HashSet<>(favoriteIds);
 
+            Map<UUID, Integer> cartQuantities = getCartQuantitiesMap(currentUser.get().getId(), productIds);
+
             dtoList.forEach(dto -> {
                 dto.setIsFavorited(favoriteSet.contains(dto.getId()));
-                dto.setQuantityInCart(0);
+                dto.setQuantityInCart(cartQuantities.getOrDefault(dto.getId(), 0));
             });
         } else {
             dtoList.forEach(dto -> {
@@ -135,9 +139,11 @@ public class ProductServiceImpl implements ProductService {
             );
             Set<UUID> favoriteSet = new HashSet<>(favoriteIds);
 
+            Map<UUID, Integer> cartQuantities = getCartQuantitiesMap(currentUser.get().getId(), productIds);
+
             dtoList.forEach(dto -> {
                 dto.setIsFavorited(favoriteSet.contains(dto.getId()));
-                dto.setQuantityInCart(0);
+                dto.setQuantityInCart(cartQuantities.getOrDefault(dto.getId(), 0));
             });
         } else {
             dtoList.forEach(dto -> {
@@ -187,7 +193,8 @@ public class ProductServiceImpl implements ProductService {
         if (currentUser.isPresent()) {
             boolean isFavorited = favoriteQueryHelper.isFavorited(currentUser.get().getId(), product.getId());
             dto.setIsFavorited(isFavorited);
-            dto.setQuantityInCart(0);
+            Integer cartQuantity = cartItemRepository.findCartQuantityByProductId(currentUser.get().getId(), product.getId());
+            dto.setQuantityInCart(cartQuantity);
         } else {
             dto.setQuantityInCart(0);
         }
@@ -209,7 +216,8 @@ public class ProductServiceImpl implements ProductService {
         if (currentUser.isPresent()) {
             boolean isFavorited = favoriteQueryHelper.isFavorited(currentUser.get().getId(), product.getId());
             dto.setIsFavorited(isFavorited);
-            dto.setQuantityInCart(0);
+            Integer cartQuantity = cartItemRepository.findCartQuantityByProductId(currentUser.get().getId(), product.getId());
+            dto.setQuantityInCart(cartQuantity);
         } else {
             dto.setQuantityInCart(0);
         }
@@ -379,5 +387,19 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return changed;
+    }
+
+    private Map<UUID, Integer> getCartQuantitiesMap(UUID userId, List<UUID> productIds) {
+        if (productIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Object[]> results = cartItemRepository.findCartQuantitiesByProductIds(userId, productIds);
+        Map<UUID, Integer> cartQuantities = new HashMap<>();
+        for (Object[] result : results) {
+            UUID productId = (UUID) result[0];
+            Long quantity = (Long) result[1];
+            cartQuantities.put(productId, quantity.intValue());
+        }
+        return cartQuantities;
     }
 }
