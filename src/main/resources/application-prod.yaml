@@ -1,0 +1,31 @@
+# Production Configuration
+# Uses the production database server
+# Override via environment variables: DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:192.168.103.106}:${DB_PORT:5432}/${DB_NAME:structure}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:123cp!@#}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: WARN
+    com.tiffany: INFO
+    org.springframework: WARN
+    org.hibernate: WARN

@@ -9,11 +9,11 @@
 		<relativePath/>
 	</parent>
 
-	<groupId>com.emenu</groupId>
-	<artifactId>cambodia-emenu-platform</artifactId>
+	<groupId>com.tiffany</groupId>
+	<artifactId>tiffany-cambodia</artifactId>
 	<version>1.0.0</version>
-	<name>cambodia-emenu-platform</name>
-	<description>Cambodia E-Menu Platform - Clean Architecture</description>
+	<name>tiffany-cambodia</name>
+	<description>Tiffany Cambodia - E-Commerce Platform</description>
 
 	<properties>
 		<java.version>21</java.version>

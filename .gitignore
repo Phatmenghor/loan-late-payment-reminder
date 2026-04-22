@@ -131,6 +131,8 @@ coverage/
 ############################
 *.sql
 !src/main/resources/data/*.sql
+!src/main/resources/db/migration/*.sql
+!scripts/*.sql
 *.dump
 *.db
 *.sqlite

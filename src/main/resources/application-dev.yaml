@@ -1,0 +1,30 @@
+# Development Server Configuration
+# Points to the shared dev server database
+
+spring:
+  datasource:
+    url: jdbc:postgresql://host.docker.internal:5432/k_hourng_cambodia
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Hour1819}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 3
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: INFO
+    com.tiffany: INFO
+    org.springframework: WARN
+    org.hibernate: WARN

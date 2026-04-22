@@ -1,58 +1,42 @@
+# ============================================================
+# application.yaml  –  BASE CONFIG (shared across all profiles)
+# ============================================================
+# To switch environment:
+#   profiles.active: local   →  localhost DB, debug logging
+#   profiles.active: dev     →  dev server DB
+#   profiles.active: prod    →  production DB, minimal logging
+# ============================================================
 spring:
   application:
-    name: cambodia_tiffany_furniture
+    name: cambodia-platform
   profiles:
-    active: dev
+    active: prod # ← change to "local" or "dev" as needed
 
-  # Database Configuration
-  datasource:
-    url: jdbc:postgresql://174.138.17.214:5432/tiffany_furniture
-    username: kithya
-    password: DE6Y6S30XO3KPTH
-
-#    url: jdbc:postgresql://192.168.103.106:5432/account_online_testing
-#    username: postgres
-#    password: 123cp!@#
-
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-  # JPA Configuration
+  # JPA  – common settings (ddl-auto overridden per profile)
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
     open-in-view: false
     properties:
       hibernate:
-        format_sql: false
         jdbc:
           batch_size: 50
 
-  # Cache Configuration
+  # Cache
   cache:
     type: caffeine
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=1h
 
-# Server Configuration
+# Server
 server:
   port: 8080
 
-# JWT Configuration
+# JWT
 jwt:
-  secret: da2bd42bef8f9f957d647ed13571df35b59c7055fb723eacdb05154878da17d77d3180385fc232cab38bded0fc7dbda0d439cc275e91164ade266d64d50633bc7
-  # Access token expiration: 10 minutes (600000 milliseconds)
-  expiration: 1111111111
-  # Refresh token expiration: 1 month (2592000000 milliseconds = 30 days)
-  refresh-token-expiration: 9999999999
+  secret: da2bd42bef8f9f957d647ed13571d35b59c7055fb723eacdb05154878da17d77d3180385fc232cab38bded0fc7dbda0d439cc275e91164ade266d64d50633bc7
+  expiration: 8640000000 # 24 hours in milliseconds
+  refresh-token-expiration: 604800000 # 7 days in milliseconds
 
-# API Documentation
+# Swagger / OpenAPI
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -61,36 +45,21 @@ springdoc:
     path: /v3/api-docs
     enabled: true
 
-# ===== TELEGRAM CONFIGURATION (MINIMAL) =====
-telegram:
-  bot:
-    token: "8464259107:AAHdIC3EZb_3uID4vnhteY6PYtmO9WGDBjU"
-    enabled: true
-    group-chat-id: "-1002784141362"
-
-# Application Configuration
+# Application
 app:
-  name: "Tiffany Furniture Platform"
+  name: "Cambodia Platform"
   version: "1.0.0"
-  description: "Tiffany Furniture Platform for Cambodia"
-
-  # Data Initialization
+  description: "E-Commerce Platform for Cambodia"
   init:
     create-admin: true
     admin-email: "phatmenghor19@gmail.com"
     admin-password: "88889999"
-
-  # Security Configuration
   security:
     token-cleanup:
       enabled: true
 
-# Logging Configuration
-logging:
-  level:
-    root: INFO
-    com.emenu: INFO
-    org.springframework: WARN
-    org.hibernate: WARN
-    org.hibernate.SQL: WARN
-    org.hibernate.type: WARN
+# Telegram
+telegram:
+  bot-token: "7964805821:AAGX_OucZ88VmJxhcDPC3fAPDHfaaP-nZOE"
+  group-id: "-5114358941"
+  enabled: true
