@@ -8,7 +8,7 @@
 # ============================================================
 spring:
   application:
-    name: cambodia-platform
+    name: loan-late-payment-reminder
   profiles:
     active: prod # ← change to "local" or "dev" as needed
 
@@ -30,12 +30,6 @@ spring:
 server:
   port: 8080
 
-# JWT
-jwt:
-  secret: da2bd42bef8f9f957d647ed13571d35b59c7055fb723eacdb05154878da17d77d3180385fc232cab38bded0fc7dbda0d439cc275e91164ade266d64d50633bc7
-  expiration: 8640000000 # 24 hours in milliseconds
-  refresh-token-expiration: 604800000 # 7 days in milliseconds
-
 # Swagger / OpenAPI
 springdoc:
   swagger-ui:
@@ -47,22 +41,9 @@ springdoc:
 
 # Application
 app:
-  name: "Cambodia Platform"
+  name: "Loan Late Payment Reminder"
   version: "1.0.0"
-  description: "E-Commerce Platform for Cambodia"
-  init:
-    create-admin: true
-    admin-email: "phatmenghor19@gmail.com"
-    admin-password: "88889999"
-  security:
-    token-cleanup:
-      enabled: true
-
-# Telegram
-telegram:
-  bot-token: "7964805821:AAGX_OucZ88VmJxhcDPC3fAPDHfaaP-nZOE"
-  group-id: "-5114358941"
-  enabled: true
+  description: "SMS notification system for loan late payment reminders"
 
 # Authentication
 auth:

@@ -9,11 +9,11 @@
 		<relativePath/>
 	</parent>
 
-	<groupId>com.tiffany</groupId>
-	<artifactId>tiffany-cambodia</artifactId>
+	<groupId>com.backend</groupId>
+	<artifactId>loan-late-payment-reminder</artifactId>
 	<version>1.0.0</version>
-	<name>tiffany-cambodia</name>
-	<description>Tiffany Cambodia - E-Commerce Platform</description>
+	<name>Loan Late Payment Reminder</name>
+	<description>SMS notification system for loan late payment reminders</description>
 
 	<properties>
 		<java.version>17</java.version>

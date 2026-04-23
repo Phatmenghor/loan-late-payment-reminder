@@ -26,6 +26,6 @@ spring:
 logging:
   level:
     root: WARN
-    com.tiffany: INFO
+    com.backend: INFO
     org.springframework: WARN
     org.hibernate: WARN
