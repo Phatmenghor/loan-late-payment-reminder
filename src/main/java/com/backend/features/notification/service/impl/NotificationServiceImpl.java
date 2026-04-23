@@ -1,6 +1,7 @@
 package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
+import com.backend.features.notification.config.SmsAsyncConfig;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendSmsRequestDto;
@@ -28,8 +29,11 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +52,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final SmsFailureLogRepository smsFailureLogRepository;
     private final ProcessingStatusRepository processingStatusRepository;
     private final CpbHelper cpbHelper;
+    private final SmsAsyncConfig smsAsyncConfig;
 
     @Override
     public ProcessingResult processPendingSmsNotifications() {
@@ -82,34 +87,11 @@ public class NotificationServiceImpl implements NotificationService {
             }
 
             log.info("COB finished - Found {} records to process", records.size());
+            log.info("Batch size: {} | Max threads: {}", smsAsyncConfig.getBatchSize(), smsAsyncConfig.getMaxThreads());
 
-            int successCount = 0;
-            int failureCount = 0;
-
-            for (LoanLateReminderDto record : records) {
-                try {
-                    Optional<SmsLog> existingLog = smsLogRepository.findByCustomerIdAndPhoneNumberAndReportDateAndStatus(
-                            record.getCustomerId(), record.getPhoneNumber(), record.getReportDate(), SMS_STATUS_SUCCESS);
-
-                    if (existingLog.isPresent()) {
-                        continue;
-                    }
-
-                    log.info("Sending SMS to phone: {} | Customer: {}", record.getPhoneNumber(), record.getCustomerId());
-
-                    sendSmsToApi(record.getPhoneNumber(), messageContent);
-                    successCount++;
-
-                    logToPostgresSQL(record, SMS_STATUS_SUCCESS, messageContent);
-
-                } catch (Exception e) {
-                    failureCount++;
-                    log.error("SMS sending failed for phone: {} | Error: {}", record.getPhoneNumber(), e.getMessage());
-
-                    logToPostgresSQL(record, SMS_STATUS_FAILURE, messageContent);
-                    recordFailureLog(record, e.getMessage());
-                }
-            }
+            int[] counts = processBatchAsync(records, messageContent);
+            int successCount = counts[0];
+            int failureCount = counts[1];
 
             log.info("Processing result - Total: {} | Success: {} | Failure: {}", records.size(), successCount, failureCount);
 
@@ -299,6 +281,55 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         log.info("END: Hourly SMS processing");
+    }
+
+    private int[] processBatchAsync(List<LoanLateReminderDto> records, String messageContent) {
+        int batchSize = smsAsyncConfig.getBatchSize();
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (int i = 0; i < records.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, records.size());
+            List<LoanLateReminderDto> batch = records.subList(i, endIndex);
+
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                processSingleBatch(batch, messageContent, successCount, failureCount);
+            });
+
+            futures.add(future);
+        }
+
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        allFutures.join();
+
+        log.info("All batches processed successfully");
+        return new int[]{successCount.get(), failureCount.get()};
+    }
+
+    private void processSingleBatch(List<LoanLateReminderDto> batch, String messageContent, AtomicInteger successCount, AtomicInteger failureCount) {
+        for (LoanLateReminderDto record : batch) {
+            try {
+                Optional<SmsLog> existingLog = smsLogRepository.findByCustomerIdAndPhoneNumberAndReportDateAndStatus(
+                        record.getCustomerId(), record.getPhoneNumber(), record.getReportDate(), SMS_STATUS_SUCCESS);
+
+                if (existingLog.isPresent()) {
+                    continue;
+                }
+
+                sendSmsToApi(record.getPhoneNumber(), messageContent);
+                successCount.incrementAndGet();
+
+                logToPostgresSQL(record, SMS_STATUS_SUCCESS, messageContent);
+
+            } catch (Exception e) {
+                failureCount.incrementAndGet();
+                log.error("SMS sending failed for phone: {}: {}", record.getPhoneNumber(), e.getMessage());
+
+                logToPostgresSQL(record, SMS_STATUS_FAILURE, messageContent);
+                recordFailureLog(record, e.getMessage());
+            }
+        }
     }
 
     private boolean isProcessingComplete(LocalDate reportDate) {

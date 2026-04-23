@@ -46,3 +46,6 @@ app:
   name: "Loan Late Payment Reminder"
   version: "1.0.0"
   description: "SMS notification system for loan late payment reminders"
+  sms:
+    batch-size: 20
+    max-threads: 10
