@@ -82,7 +82,7 @@ public class NotificationServiceImpl implements NotificationService {
                     sendSmsToApi(record.getPhoneNumber(), messageContent);
                     successCount++;
 
-                    logToPostgresSQL(record.getPhoneNumber(), SMS_STATUS_SUCCESS, messageContent);
+                    logToPostgresSQL(record, SMS_STATUS_SUCCESS, messageContent);
                     log.info("✓ SMS sent successfully | Phone: {} | Status: {}", record.getPhoneNumber(), SMS_STATUS_SUCCESS);
                     log.info("========== END: SMS processing completed for phone: {} ==========", record.getPhoneNumber());
 
@@ -90,7 +90,7 @@ public class NotificationServiceImpl implements NotificationService {
                     failureCount++;
                     log.error("✗ SMS sending failed | Phone: {} | Customer: {} | Error: {}",
                             record.getPhoneNumber(), record.getCustomerId(), e.getMessage());
-                    logToPostgresSQL(record.getPhoneNumber(), SMS_STATUS_FAILED, messageContent);
+                    logToPostgresSQL(record, SMS_STATUS_FAILED, messageContent);
                     recordFailureLog(record, e.getMessage());
                 }
             }
@@ -134,7 +134,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     public void sendSmsDirectly(String phoneNumber, String messageContent) throws RestClientException {
         sendSmsToApi(phoneNumber, messageContent);
-        logToPostgresSQL(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
+        logToPostgreSQLSimple(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
     }
 
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
@@ -168,7 +168,30 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private void logToPostgresSQL(String phoneNumber, String status, String messageContent) {
+    private void logToPostgresSQL(LoanLateReminderDto record, String status, String messageContent) {
+        try {
+            SmsLog smsLog = SmsLog.builder()
+                    .phoneNumber(record.getPhoneNumber())
+                    .customerId(record.getCustomerId())
+                    .reportDate(record.getReportDate())
+                    .arrangementId(record.getArrangementId())
+                    .dayDue(record.getDayDue())
+                    .messageContent(messageContent)
+                    .smsStatus(status)
+                    .smsLogDate(LocalDateTime.now())
+                    .build();
+
+            smsLogRepository.save(smsLog);
+            log.info("PostgreSQL: Audit log saved for phone: {} | Customer: {} | Status: {}",
+                    record.getPhoneNumber(), record.getCustomerId(), status);
+
+        } catch (Exception e) {
+            log.error("PostgreSQL: Failed to save audit log for phone: {} | Error: {}",
+                    record.getPhoneNumber(), e.getMessage());
+        }
+    }
+
+    private void logToPostgreSQLSimple(String phoneNumber, String status, String messageContent) {
         try {
             SmsLog smsLog = SmsLog.builder()
                     .phoneNumber(phoneNumber)
@@ -178,10 +201,10 @@ public class NotificationServiceImpl implements NotificationService {
                     .build();
 
             smsLogRepository.save(smsLog);
-            log.info("PostgreSQL: Audit log saved for phone: {} | Status: {}", phoneNumber, status);
+            log.info("PostgreSQL: Test SMS audit log saved for phone: {} | Status: {}", phoneNumber, status);
 
         } catch (Exception e) {
-            log.error("PostgreSQL: Failed to save audit log for phone: {} | Error: {}", phoneNumber, e.getMessage());
+            log.error("PostgreSQL: Failed to save test SMS audit log for phone: {} | Error: {}", phoneNumber, e.getMessage());
         }
     }
 
@@ -190,13 +213,13 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("========== START: Sending test SMS ==========");
         try {
             sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
-            logToPostgresSQL(request.getPhoneNumber(), SMS_STATUS_SUCCESS, request.getMessageContent());
+            logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_SUCCESS, request.getMessageContent());
             log.info("✓ Test SMS sent successfully | Phone: {} | Status: {}", request.getPhoneNumber(), SMS_STATUS_SUCCESS);
             log.info("========== END: Test SMS sent ==========");
             return SMS_STATUS_SUCCESS;
         } catch (Exception e) {
             log.error("✗ Test SMS sending failed | Phone: {} | Error: {}", request.getPhoneNumber(), e.getMessage());
-            logToPostgresSQL(request.getPhoneNumber(), SMS_STATUS_FAILED, request.getMessageContent());
+            logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_FAILED, request.getMessageContent());
             throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
         }
     }
