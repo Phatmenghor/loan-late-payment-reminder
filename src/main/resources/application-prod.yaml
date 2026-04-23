@@ -1,15 +1,12 @@
 # Production Configuration
-# Uses the production database server
-# Override via environment variables: DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD
-
 server:
   port: ${SERVER_PORT:9393}
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:192.168.103.106}:${DB_PORT:5432}/${DB_NAME:structure}
+    url: jdbc:postgresql://${DB_HOST:192.168.103.106}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:123cp!@#}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -20,17 +17,34 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: false
 
-# CPB API Configuration for Production
+# Authentication
+auth:
+  username: ${AUTH_USERNAME}
+  password: ${AUTH_PASSWORD}
+
+# CPB API Configuration
 cpb:
   api:
     url: ${API_URL:http://10.18.1.47:9393}
-    encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
+    encryption-key: ${ENCRYPTION_KEY}
+
+# Oracle Database Configuration
+datasource:
+  oracle:
+    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
+    username: ${ORACLE_USERNAME:dwh}
+    password: ${ORACLE_PASSWORD}
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    maximum-pool-size: 10
+    minimum-idle: 3
+    connection-timeout: 20000
+    idle-timeout: 300000
 
 logging:
   level:

@@ -28,7 +28,7 @@ spring:
 
 # Server
 server:
-  port: 9393
+  port: ${SERVER_PORT:9393}
 
 # Swagger / OpenAPI
 springdoc:
@@ -44,33 +44,3 @@ app:
   name: "Loan Late Payment Reminder"
   version: "1.0.0"
   description: "SMS notification system for loan late payment reminders"
-
-# Authentication
-auth:
-  username: "admin"
-  password: "admin123"
-
-# CPB API Configuration
-cpb:
-  api:
-    url: "http://10.18.1.47:9393"
-    encryption-key: "OTTCPB!!BBDUNG#LOGFH$837990"
-
-# Notification Configuration
-notification:
-  sms:
-    enabled: true
-    api-endpoint: "/SendOTT"
-    timeout-seconds: 30
-
-# Oracle Database Configuration (Secondary - for reading data)
-datasource:
-  oracle:
-    url: "jdbc:oracle:thin:@192.168.102.5:1521:dwh"
-    username: "dwh"
-    password: "Bnk$$444"
-    driver-class-name: "oracle.jdbc.driver.OracleDriver"
-    maximum-pool-size: 5
-    minimum-idle: 2
-    connection-timeout: 20000
-    idle-timeout: 300000

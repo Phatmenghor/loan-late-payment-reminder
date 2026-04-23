@@ -1,15 +1,12 @@
 # Local Development Configuration
-# Uses localhost PostgreSQL
-# Override via environment variables: DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD
-
 server:
   port: ${SERVER_PORT:9393}
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:k_hourng_cambodia}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:Hour1819}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -26,11 +23,28 @@ spring:
       hibernate:
         format_sql: false
 
-# CPB API Configuration for Local
+# Authentication
+auth:
+  username: ${AUTH_USERNAME:admin}
+  password: ${AUTH_PASSWORD:admin123}
+
+# CPB API Configuration
 cpb:
   api:
-    url: ${API_URL:http://10.18.1.47:9393}
+    url: ${API_URL:http://localhost:9393}
     encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
+
+# Oracle Database Configuration
+datasource:
+  oracle:
+    url: ${ORACLE_URL:jdbc:oracle:thin:@localhost:1521:xe}
+    username: ${ORACLE_USERNAME:system}
+    password: ${ORACLE_PASSWORD:oracle}
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    maximum-pool-size: 3
+    minimum-idle: 1
+    connection-timeout: 20000
+    idle-timeout: 300000
 
 logging:
   level:
