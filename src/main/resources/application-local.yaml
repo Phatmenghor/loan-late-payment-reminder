@@ -31,7 +31,7 @@ cpb:
 # Oracle Database Configuration
 datasource:
   oracle:
-    enabled: false
+    enabled: true
     url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
     username: ${ORACLE_USERNAME:dwh}
     password: ${ORACLE_PASSWORD:Bnk$$444}
