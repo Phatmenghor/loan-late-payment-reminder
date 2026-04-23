@@ -28,6 +28,19 @@ cpb:
     url: ${API_URL:http://localhost:9393}
     encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
 
+# Oracle Database Configuration
+datasource:
+  oracle:
+    enabled: false
+    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
+    username: ${ORACLE_USERNAME:dwh}
+    password: ${ORACLE_PASSWORD:Bnk$$444}
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    maximum-pool-size: 10
+    minimum-idle: 3
+    connection-timeout: 20000
+    idle-timeout: 300000
+
 logging:
   level:
     root: INFO

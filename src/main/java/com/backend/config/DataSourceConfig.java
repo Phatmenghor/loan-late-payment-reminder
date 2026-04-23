@@ -16,7 +16,7 @@ import javax.sql.DataSource;
 public class DataSourceConfig {
 
     @Bean(name = "oracleDataSource")
-    @ConditionalOnProperty(prefix = "datasource.oracle", name = "url")
+    @ConditionalOnProperty(prefix = "datasource.oracle", name = "enabled", havingValue = "true")
     public DataSource oracleDataSource(OracleDataSourceProperties props) {
         log.info("Configuring SECONDARY datasource: Oracle");
         return DataSourceBuilder.create()
@@ -31,6 +31,7 @@ public class DataSourceConfig {
     @ConfigurationProperties(prefix = "datasource.oracle")
     @Data
     public static class OracleDataSourceProperties {
+        private boolean enabled;
         private String url;
         private String username;
         private String password;
