@@ -64,13 +64,12 @@ public class NotificationServiceImpl implements NotificationService {
                 try {
                     log.info("========== START: Processing SMS for phone: {} ==========", phoneNumber);
 
-                    String apiResponse = sendSmsToApi(phoneNumber, messageContent);
-                    String finalStatus = SMS_STATUS_SUCCESS;
-                    oracleHelper.updateSmsStatus(phoneNumber, finalStatus);
+                    sendSmsToApi(phoneNumber, messageContent);
+                    oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_SUCCESS);
                     successCount++;
 
-                    logToPostgresSQL(phoneNumber, apiResponse, messageContent);
-                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, finalStatus);
+                    logToPostgresSQL(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
+                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, SMS_STATUS_SUCCESS);
                     log.info("========== END: SMS processing completed for phone: {} ==========", phoneNumber);
 
                 } catch (Exception e) {
@@ -145,11 +144,11 @@ public class NotificationServiceImpl implements NotificationService {
     public String sendTestSms(SendSmsRequestDto request) {
         log.info("========== START: Sending test SMS ==========");
         try {
-            String apiResponse = sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
-            logToPostgresSQL(request.getPhoneNumber(), apiResponse, request.getMessageContent());
-            log.info("✓ Test SMS sent successfully | Phone: {} | Status: {}", request.getPhoneNumber(), apiResponse);
+            sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
+            logToPostgresSQL(request.getPhoneNumber(), SMS_STATUS_SUCCESS, request.getMessageContent());
+            log.info("✓ Test SMS sent successfully | Phone: {} | Status: {}", request.getPhoneNumber(), SMS_STATUS_SUCCESS);
             log.info("========== END: Test SMS sent ==========");
-            return apiResponse;
+            return SMS_STATUS_SUCCESS;
         } catch (Exception e) {
             log.error("✗ Test SMS sending failed | Phone: {} | Error: {}", request.getPhoneNumber(), e.getMessage());
             logToPostgresSQL(request.getPhoneNumber(), SMS_STATUS_FAILED, request.getMessageContent());
