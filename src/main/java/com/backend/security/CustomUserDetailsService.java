@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (defaultUsername.equals(username)) {
             return User.builder()
                     .username(username)
-                    .password("{noop}" + defaultPassword)
+                    .password(defaultPassword)
                     .authorities(getDefaultAuthorities())
                     .accountExpired(false)
                     .accountLocked(false)
