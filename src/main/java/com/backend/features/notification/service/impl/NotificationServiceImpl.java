@@ -11,6 +11,9 @@ import com.backend.features.notification.repository.SmsLogRepository;
 import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,9 +98,13 @@ public class NotificationServiceImpl implements NotificationService {
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
             log.info("API: Sending SMS to {}", apiUrl);
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
+
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
                     apiUrl,
-                    jsonPayload,
+                    request,
                     ReceptionFormatDto.class
             );
 

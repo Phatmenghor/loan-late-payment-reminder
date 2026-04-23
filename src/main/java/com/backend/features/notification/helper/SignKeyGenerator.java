@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -26,8 +29,12 @@ public class SignKeyGenerator {
             String payload = createPayload(phone, content);
             log.info("Generating sign key for phone: {} from API: {}", phone, cpbApiConfig.getUrl());
 
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(payload, headers);
+
             String url = cpbApiConfig.getUrl() + "/GenKey";
-            ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
 
             String signKey = response.getBody();
             log.info("Sign key generated successfully for phone: {}", phone);
