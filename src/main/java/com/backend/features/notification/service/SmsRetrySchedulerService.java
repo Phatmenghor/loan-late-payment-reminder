@@ -29,10 +29,47 @@ public class SmsRetrySchedulerService {
     private final CpbHelper cpbHelper;
     private final NotificationServiceImpl notificationService;
 
-    @Scheduled(cron = "0 0 9 * * ?")
-    public void retrySmsForFailedRecords() {
-        log.info("========== START: SMS Retry Processing at 9:00 AM ==========");
+    @Scheduled(cron = "0 0 8 * * ?")
+    public void scheduleProcessAt8Am() {
+        log.info("========== START: SMS Processing at 8:00 AM ==========");
+        notificationService.processPendingSmsNotifications();
+        retrySmsForFailedRecords();
+        log.info("========== END: SMS Processing at 8:00 AM ==========");
+    }
 
+    @Scheduled(cron = "0 0 9 * * ?")
+    public void scheduleProcessAt9Am() {
+        log.info("========== START: SMS Processing at 9:00 AM ==========");
+        notificationService.processPendingSmsNotifications();
+        retrySmsForFailedRecords();
+        log.info("========== END: SMS Processing at 9:00 AM ==========");
+    }
+
+    @Scheduled(cron = "0 0 10 * * ?")
+    public void scheduleProcessAt10Am() {
+        log.info("========== START: SMS Processing at 10:00 AM ==========");
+        notificationService.processPendingSmsNotifications();
+        retrySmsForFailedRecords();
+        log.info("========== END: SMS Processing at 10:00 AM ==========");
+    }
+
+    @Scheduled(cron = "0 0 11 * * ?")
+    public void scheduleProcessAt11Am() {
+        log.info("========== START: SMS Processing at 11:00 AM ==========");
+        notificationService.processPendingSmsNotifications();
+        retrySmsForFailedRecords();
+        log.info("========== END: SMS Processing at 11:00 AM ==========");
+    }
+
+    @Scheduled(cron = "0 0 12 * * ?")
+    public void scheduleProcessAt12Pm() {
+        log.info("========== START: SMS Processing at 12:00 PM ==========");
+        notificationService.processPendingSmsNotifications();
+        retrySmsForFailedRecords();
+        log.info("========== END: SMS Processing at 12:00 PM ==========");
+    }
+
+    private void retrySmsForFailedRecords() {
         try {
             LocalDate reportDate = LocalDate.now().minusDays(1);
             String messageContent = cpbHelper.getContentDescription();
@@ -41,7 +78,6 @@ public class SmsRetrySchedulerService {
 
             if (failedRecords.isEmpty()) {
                 log.info("✓ No failed SMS records to retry for date: {}", reportDate);
-                log.info("========== END: SMS Retry Processing ==========");
                 return;
             }
 
@@ -79,7 +115,6 @@ public class SmsRetrySchedulerService {
             }
 
             log.info("========== RETRY RESULT: Success: {}, Still Failed: {} ==========", successCount, stillFailedCount);
-            log.info("========== END: SMS Retry Processing ==========");
 
         } catch (Exception e) {
             log.error("✗ Exception in SMS Retry Processing: {} | Cause: {}", e.getMessage(), e.getCause(), e);
