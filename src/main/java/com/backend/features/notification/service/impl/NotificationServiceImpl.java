@@ -103,6 +103,10 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    public String getMessageContent() {
+        return cpbHelper.getContentDescription();
+    }
+
     private void recordFailureLog(LoanLateReminderDto record, String failureReason) {
         try {
             LocalDate reportDate = record.getReportDate() != null ? record.getReportDate() : LocalDate.now().minusDays(1);
