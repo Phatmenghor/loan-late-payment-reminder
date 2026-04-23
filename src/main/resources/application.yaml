@@ -10,7 +10,7 @@ spring:
   application:
     name: sms-loan-late
   profiles:
-    active: dev # ← change to "local" or "dev" or "prod" as needed
+    active: prod # ← change to "local" or "dev" or "prod" as needed
 
   # PostgreSQL (Primary datasource - auto-configured by Spring Boot)
   datasource:
