@@ -71,18 +71,18 @@ public class SmsRetrySchedulerService {
 
     private void retrySmsForFailedRecords() {
         try {
+            LocalDate reportDate = LocalDate.now().minusDays(1);
             String messageContent = cpbHelper.getContentDescription();
 
-            List<SmsFailureLog> failedRecords = smsFailureLogRepository.findAll().stream()
-                    .filter(log -> !log.getStatus().equals(SMS_STATUS_SUCCESS))
-                    .toList();
+            List<SmsFailureLog> failedRecords = smsFailureLogRepository.findFailedRecordsByReportDate(reportDate);
 
             if (failedRecords.isEmpty()) {
-                log.info("✓ No failed SMS records to retry");
+                log.info("✓ All SMS sent successfully for date: {} - No failures to retry", reportDate);
                 return;
             }
 
-            log.info("✓ Found {} failed SMS records to retry", failedRecords.size());
+            log.info("✓ Found {} failed SMS records to retry for date: {}", failedRecords.size(), reportDate);
+            log.info("   Processing only failures - skipping view query to avoid re-processing 20K+ records");
 
             int successCount = 0;
             int stillFailedCount = 0;
