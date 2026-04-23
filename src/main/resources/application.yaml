@@ -57,3 +57,8 @@ app:
   name: "Loan Late Payment Reminder"
   version: "1.0.0"
   description: "SMS notification system for loan late payment reminders"
+
+# Flyway
+flyway:
+  enabled: true
+  baseline-on-migrate: true
