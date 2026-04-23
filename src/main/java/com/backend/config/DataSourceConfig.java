@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -16,6 +17,7 @@ import javax.sql.DataSource;
 public class DataSourceConfig {
 
     @Bean(name = "oracleDataSource")
+    @Lazy
     @ConditionalOnProperty(prefix = "datasource.oracle", name = "enabled", havingValue = "true")
     public DataSource oracleDataSource(OracleDataSourceProperties props) {
         log.info("Configuring SECONDARY datasource: Oracle");
