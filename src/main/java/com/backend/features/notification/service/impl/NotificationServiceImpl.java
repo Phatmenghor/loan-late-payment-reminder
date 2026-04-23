@@ -69,10 +69,11 @@ public class NotificationServiceImpl implements NotificationService {
 
             for (LoanLateReminderDto record : records) {
                 try {
-                    Optional<SmsLog> existingLog = smsLogRepository.findByPhoneNumberAndStatus(record.getPhoneNumber(), SMS_STATUS_SUCCESS);
+                    Optional<SmsLog> existingLog = smsLogRepository.findByCustomerIdAndPhoneNumberAndStatus(
+                            record.getCustomerId(), record.getPhoneNumber(), SMS_STATUS_SUCCESS);
                     if (existingLog.isPresent()) {
-                        log.info("⊘ SMS already sent successfully | Phone: {} | Customer: {} | Skipping",
-                                record.getPhoneNumber(), record.getCustomerId());
+                        log.info("⊘ SMS already sent successfully | Customer: {} | Phone: {} | Skipping duplicate",
+                                record.getCustomerId(), record.getPhoneNumber());
                         continue;
                     }
 
