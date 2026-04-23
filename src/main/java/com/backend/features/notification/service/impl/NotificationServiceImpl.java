@@ -36,11 +36,11 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendNotificationsToMobile() {
         List<SmsLog> logs = smsLogRepository.findAllByStatusNotEqual("SVC-SUCCESS-00");
 
-        logs.forEach(log -> {
+        logs.forEach(smsLog -> {
             try {
-                sendNotification(log.getPhoneNumber(), log);
+                sendNotification(smsLog.getPhoneNumber(), smsLog);
             } catch (Exception e) {
-                log.error("Error processing notification for phone: {}", log.getPhoneNumber(), e);
+                log.error("Error processing notification for phone: {}", smsLog.getPhoneNumber(), e);
             }
         });
     }

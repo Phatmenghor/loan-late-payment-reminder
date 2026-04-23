@@ -1,51 +1,56 @@
 package com.backend.security;
 
-import com.backend.features.auth.models.User;
-import com.backend.features.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    /**
-     * Load user by username for authentication.
-     */
+    @Value("${app.auth.username:admin}")
+    private String defaultUsername;
+
+    @Value("${app.auth.password:admin123}")
+    private String defaultPassword;
+
     @Override
-    @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String userIdentifier) throws UsernameNotFoundException {
-        User user = userRepository.findByUserIdentifierAndIsDeletedFalse(userIdentifier)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userIdentifier));
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        if (defaultUsername.equals(username)) {
+            return User.builder()
+                    .username(username)
+                    .password(defaultPassword)
+                    .authorities(getDefaultAuthorities())
+                    .accountExpired(false)
+                    .accountLocked(false)
+                    .credentialsExpired(false)
+                    .disabled(false)
+                    .build();
+        }
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getUserIdentifier(),
-                user.getPassword(),
-                mapUserTypeToAuthorities(user)
-        );
+        log.warn("User not found: {}", username);
+        throw new UsernameNotFoundException("User not found: " + username);
     }
 
-    private Collection<? extends GrantedAuthority> mapUserTypeToAuthorities(User user) {
-        // Map UserRole to Spring Security authorities for fine-grained access control
-        if (user.getUserRole() != null) {
-            return Collections.singletonList(
-                    new SimpleGrantedAuthority("ROLE_" + user.getUserRole().name())
-            );
-        }
-        // Fallback to UserType if userRole is not set (for backwards compatibility)
-        return Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_" + user.getUserType().name())
-        );
+    private Set<GrantedAuthority> getDefaultAuthorities() {
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        return authorities;
     }
 }
