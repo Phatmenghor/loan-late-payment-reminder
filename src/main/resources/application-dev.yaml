@@ -4,7 +4,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://host.docker.internal:5432/loan_reminder
+    url: jdbc:postgresql://${DB_HOST:192.168.103.106}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:Hour1819}
     driver-class-name: org.postgresql.Driver

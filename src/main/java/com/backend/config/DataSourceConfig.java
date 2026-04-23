@@ -12,7 +12,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @Slf4j
-public class DataSourceConfig {
+class DataSourceConfig {
 
     @Bean
     @Primary
