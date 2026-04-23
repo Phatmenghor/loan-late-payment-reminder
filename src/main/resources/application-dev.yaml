@@ -1,6 +1,9 @@
 # Development Server Configuration
 # Points to the shared dev server database
 
+server:
+  port: ${SERVER_PORT:9393}
+
 spring:
   datasource:
     url: jdbc:postgresql://host.docker.internal:5432/k_hourng_cambodia
@@ -21,6 +24,12 @@ spring:
     properties:
       hibernate:
         format_sql: false
+
+# CPB API Configuration for Development
+cpb:
+  api:
+    url: ${API_URL:http://10.18.1.47:9393}
+    encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
 
 logging:
   level:

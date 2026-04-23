@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class CpbApiConfig {
 
     private String url;
+    private String encryptionKey;
     private int connectTimeoutMs;
     private int readTimeoutMs;
     private String username;

@@ -8,7 +8,7 @@
 # ============================================================
 spring:
   application:
-    name: loan-late-payment-reminder
+    name: sms-loan-late
   profiles:
     active: prod # ← change to "local" or "dev" as needed
 
@@ -28,7 +28,7 @@ spring:
 
 # Server
 server:
-  port: 8080
+  port: 9393
 
 # Swagger / OpenAPI
 springdoc:
@@ -53,7 +53,8 @@ auth:
 # CPB API Configuration
 cpb:
   api:
-    url: "http://localhost:8080"
+    url: "http://10.18.1.47:9393"
+    encryption-key: "OTTCPB!!BBDUNG#LOGFH$837990"
 
 # Notification Configuration
 notification:
