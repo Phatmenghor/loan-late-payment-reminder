@@ -36,6 +36,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private static final String SMS_STATUS_SUCCESS = "SUCCESS";
     private static final String SMS_STATUS_FAILURE = "FAILURE";
+    private static final int PROCESSING_COMPLETE_THRESHOLD_MINUTES = 30;
 
     private final RestTemplate restTemplate;
     private final NotificationPayloadBuilder payloadBuilder;
@@ -44,6 +45,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final SmsLogRepository smsLogRepository;
     private final SmsFailureLogRepository smsFailureLogRepository;
     private final CpbHelper cpbHelper;
+
+    // Track when processing last happened (for this day)
+    private LocalDateTime lastProcessingTime = null;
 
     @Override
     public void processPendingSmsNotifications() {
@@ -225,6 +229,135 @@ public class NotificationServiceImpl implements NotificationService {
             log.error("✗ Test SMS sending failed | Phone: {} | Error: {}", request.getPhoneNumber(), e.getMessage());
             logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_FAILURE, request.getMessageContent());
             throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
+        }
+    }
+
+    // ============ SCHEDULER BUSINESS LOGIC ============
+
+    public void processWithRetry(String timeLabel) {
+        try {
+            LocalDate reportDate = LocalDate.now().minusDays(1);
+
+            // STEP 1: Check if processing is already complete
+            if (isProcessingComplete(reportDate)) {
+                log.info("✓ Processing already complete at {}", timeLabel);
+                log.info("  All SMS sent successfully - no failures remaining");
+                log.info("  Skipping processing to save resources");
+                return;
+            }
+
+            // STEP 2: Process new records from view (if COB finished)
+            log.info("STEP 1: Processing new records from view ({})", timeLabel);
+            processPendingSmsNotifications();
+
+            // Update tracking after processing
+            lastProcessingTime = LocalDateTime.now();
+
+            // STEP 3: Retry failed records
+            log.info("STEP 2: Retrying failed records ({})", timeLabel);
+            retryFailedRecords(reportDate);
+
+            // STEP 4: Check completion status after retry
+            if (isProcessingComplete(reportDate)) {
+                log.info("✓ All SMS processing complete at {}", timeLabel);
+            }
+
+        } catch (Exception e) {
+            log.error("✗ Exception in SMS Processing at {}: {} | Cause: {}",
+                    timeLabel, e.getMessage(), e.getCause(), e);
+        }
+    }
+
+    private boolean isProcessingComplete(LocalDate reportDate) {
+        try {
+            // Check 1: No failures in SmsFailureLog
+            List<SmsFailureLog> failedRecords = smsFailureLogRepository.findFailedRecordsByReportDate(reportDate);
+
+            if (!failedRecords.isEmpty()) {
+                log.debug("Processing NOT complete: {} failures still exist", failedRecords.size());
+                return false;
+            }
+
+            // Check 2: We must have processed at least once (lastProcessingTime set)
+            if (lastProcessingTime == null) {
+                log.debug("Processing NOT complete: No records processed yet (COB might not be finished)");
+                return false;
+            }
+
+            // Check 3: Enough time has passed since last processing
+            LocalDateTime thresholdTime = lastProcessingTime.plusMinutes(PROCESSING_COMPLETE_THRESHOLD_MINUTES);
+            if (LocalDateTime.now().isBefore(thresholdTime)) {
+                log.debug("Processing NOT complete: Not enough time passed since last processing");
+                return false;
+            }
+
+            log.info("✓ Processing COMPLETE: Zero failures + time threshold passed");
+            return true;
+
+        } catch (Exception e) {
+            log.error("✗ Error checking completion status: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    private void retryFailedRecords(LocalDate reportDate) {
+        try {
+            String messageContent = null;
+
+            try {
+                messageContent = getMessageContent();
+            } catch (Exception e) {
+                log.warn("Could not load message content: {}", e.getMessage());
+                messageContent = "";
+            }
+
+            List<SmsFailureLog> failedRecords = smsFailureLogRepository.findFailedRecordsByReportDate(reportDate);
+
+            if (failedRecords.isEmpty()) {
+                log.info("✓ No failed records to retry for date: {}", reportDate);
+                return;
+            }
+
+            log.info("✓ Found {} failed SMS records to retry for date: {}", failedRecords.size(), reportDate);
+
+            int retrySuccessCount = 0;
+            int retryFailureCount = 0;
+
+            for (SmsFailureLog failureLog : failedRecords) {
+                try {
+                    log.info("  Retrying SMS for phone: {} | Retry count: {} | Reason: {}",
+                            failureLog.getPhoneNumber(),
+                            failureLog.getRetryCount(),
+                            failureLog.getFailureReason());
+
+                    sendSmsDirectly(failureLog.getPhoneNumber(), messageContent);
+                    retrySuccessCount++;
+
+                    failureLog.setStatus(SMS_STATUS_SUCCESS);
+                    failureLog.setLastRetryDate(LocalDateTime.now());
+                    smsFailureLogRepository.save(failureLog);
+
+                    log.info("  ✓ Retry successful for phone: {}", failureLog.getPhoneNumber());
+
+                } catch (Exception e) {
+                    retryFailureCount++;
+                    log.error("  ✗ Retry failed for phone: {} | Error: {}",
+                            failureLog.getPhoneNumber(), e.getMessage());
+
+                    failureLog.setRetryCount(failureLog.getRetryCount() + 1);
+                    failureLog.setFailureReason(e.getMessage());
+                    failureLog.setLastRetryDate(LocalDateTime.now());
+                    failureLog.setStatus(SMS_STATUS_FAILURE);
+                    smsFailureLogRepository.save(failureLog);
+                }
+            }
+
+            log.info("========== RETRY SUMMARY: Success: {}, Failed: {} ==========",
+                    retrySuccessCount, retryFailureCount);
+
+        } catch (Exception e) {
+            log.error("✗ Exception in SMS Retry Processing: {} | Cause: {}",
+                    e.getMessage(), e.getCause(), e);
         }
     }
 }
