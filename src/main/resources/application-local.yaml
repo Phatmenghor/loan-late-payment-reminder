@@ -1,7 +1,7 @@
-# Local Development Configuration (overrides base application.yaml)
+# Local Development Configuration (H2 in-memory, no external dependencies)
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
 
 spring:
   datasource:
@@ -16,31 +16,32 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: false
 
 # Authentication
 app:
   auth:
-    username: ${AUTH_USERNAME:admin}
-    password: ${AUTH_PASSWORD:admin123}
+    username: admin
+    password: admin123
 
 # CPB API Configuration
 cpb:
   api:
-    url: ${API_URL:http://10.18.1.47:9393}
-    encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
+    url: http://10.18.1.47:9393
+    encryption-key: OTTCPB!!BBDUNG#LOGFH$837990
+    username: admin
+    password: admin123
 
-# Oracle Database Configuration
+# Oracle Database Configuration (disabled for local)
 datasource:
   oracle:
     enabled: false
-    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
-    username: ${ORACLE_USERNAME:dwh}
-    password: ${ORACLE_PASSWORD:Bnk$$444}
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    maximum-pool-size: 10
-    minimum-idle: 3
-    connection-timeout: 20000
-    idle-timeout: 300000
 
 logging:
   level:
