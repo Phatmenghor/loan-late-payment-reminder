@@ -1,25 +1,23 @@
 package com.backend.features.notification.models;
 
-import com.backend.shared.models.BaseAuditEntity;
+import com.backend.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "D_CBS_SMS_LOG")
+@Table(name = "d_cbs_sms_log")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SmsLog extends BaseAuditEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@EqualsAndHashCode(callSuper = true)
+public class SmsLog extends BaseUUIDEntity {
 
     @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
