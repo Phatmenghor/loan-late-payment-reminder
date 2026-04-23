@@ -10,7 +10,7 @@ spring:
   application:
     name: sms-loan-late
   profiles:
-    active: prod # ← change to "local" or "dev" as needed
+    active: dev # ← change to "local" or "dev" as needed
 
   # JPA  – common settings (ddl-auto overridden per profile)
   jpa:
