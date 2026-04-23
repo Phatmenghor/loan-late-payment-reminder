@@ -8,8 +8,10 @@ import com.backend.features.notification.enums.ProcessingResult;
 import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
+import com.backend.features.notification.models.ProcessingStatus;
 import com.backend.features.notification.models.SmsFailureLog;
 import com.backend.features.notification.models.SmsLog;
+import com.backend.features.notification.repository.ProcessingStatusRepository;
 import com.backend.features.notification.repository.SmsFailureLogRepository;
 import com.backend.features.notification.repository.SmsLogRepository;
 import com.backend.features.notification.service.NotificationService;
@@ -44,6 +46,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final OracleHelper oracleHelper;
     private final SmsLogRepository smsLogRepository;
     private final SmsFailureLogRepository smsFailureLogRepository;
+    private final ProcessingStatusRepository processingStatusRepository;
     private final CpbHelper cpbHelper;
 
     @Override
@@ -53,22 +56,46 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("└─────────────────────────────────────────────────────────────────────┘");
 
         try {
-            String messageContent = cpbHelper.getContentDescription();
-            log.info("   ✓ Message content loaded from CPB");
+            LocalDate reportDate = LocalDate.now().minusDays(1);
 
+            log.info("   ├─ Optimization Check: Query ProcessingStatus for {}", reportDate);
+            Optional<ProcessingStatus> existingStatus = processingStatusRepository.findCompleteByReportDate(reportDate);
+
+            if (existingStatus.isPresent()) {
+                ProcessingStatus status = existingStatus.get();
+                log.info("   ├─ ✓ OPTIMIZATION HIT! Processing already complete");
+                log.info("   ├─ Details:");
+                log.info("   │  ├─ Report Date: {}", status.getReportDate());
+                log.info("   │  ├─ Total Customers: {}", status.getTotalCustomers());
+                log.info("   │  ├─ Success Count: {}", status.getSuccessCount());
+                log.info("   │  ├─ Failure Count: {}", status.getFailureCount());
+                log.info("   │  ├─ Completed At: {}", status.getCompletedAt());
+                log.info("   │  └─ Query Count: 1 (optimization saved {} queries!)",
+                        status.getTotalCustomers() + 1);
+                log.info("   │");
+                log.info("   └─ Skipping View query & SmsLog checks → Returning: ALL_SUCCESS");
+                return ProcessingResult.ALL_SUCCESS;
+            }
+
+            log.info("   │");
+            log.info("   ├─ No optimization hit, proceeding with full processing");
+            log.info("   ├─ Loading message content from CPB...");
+            String messageContent = cpbHelper.getContentDescription();
+            log.info("   │  └─ ✓ Message content loaded");
+
+            log.info("   ├─ Querying View: SELECT * FROM VIEW_LOAN_LATE_REMINDER");
             List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
-            log.info("   ✓ View query executed: SELECT * FROM VIEW_LOAN_LATE_REMINDER");
+            log.info("   │  └─ ✓ View query executed");
 
             if (records.isEmpty()) {
-                log.warn("   ⊘ View is EMPTY - COB not yet finished");
-                log.info("   │ No records found for processing");
-                log.info("   │ Will retry in next scheduled run");
+                log.warn("   ├─ ⊘ View is EMPTY - COB not yet finished");
+                log.info("   │  └─ No records to process");
                 log.info("   └─ Returning: COB_NOT_FINISHED");
                 return ProcessingResult.COB_NOT_FINISHED;
             }
 
-            log.info("   ✓ COB FINISHED! View has {} records to process", records.size());
-            log.info("   │ Processing each record:");
+            log.info("   ├─ ✓ COB FINISHED! View has {} records", records.size());
+            log.info("   ├─ Processing each record:");
 
             int successCount = 0;
             int failureCount = 0;
@@ -79,43 +106,45 @@ public class NotificationServiceImpl implements NotificationService {
                             record.getCustomerId(), record.getPhoneNumber(), record.getReportDate(), SMS_STATUS_SUCCESS);
 
                     if (existingLog.isPresent()) {
-                        log.debug("   ├─ [SKIP] Phone: {} | Customer: {} | Already sent SUCCESS on {}",
-                                record.getPhoneNumber(), record.getCustomerId(), record.getReportDate());
+                        log.debug("   │  ├─ [SKIP] Phone: {} | Already sent", record.getPhoneNumber());
                         continue;
                     }
 
-                    log.info("   ├─ [SEND] Phone: {} | Customer: {} | Arrangement: {}",
-                            record.getPhoneNumber(), record.getCustomerId(), record.getArrangementId());
+                    log.info("   │  ├─ [SEND] Phone: {} | Customer: {}",
+                            record.getPhoneNumber(), record.getCustomerId());
 
                     sendSmsToApi(record.getPhoneNumber(), messageContent);
                     successCount++;
 
                     logToPostgresSQL(record, SMS_STATUS_SUCCESS, messageContent);
-                    log.info("   │  └─ ✓ SUCCESS | Status logged to SmsLog");
+                    log.info("   │  │  └─ ✓ SUCCESS");
 
                 } catch (Exception e) {
                     failureCount++;
-                    log.error("   ├─ [FAIL] Phone: {} | Customer: {} | Error: {}",
-                            record.getPhoneNumber(), record.getCustomerId(), e.getMessage());
+                    log.error("   │  ├─ [FAIL] Phone: {} | Error: {}",
+                            record.getPhoneNumber(), e.getMessage());
 
                     logToPostgresSQL(record, SMS_STATUS_FAILURE, messageContent);
                     recordFailureLog(record, e.getMessage());
-                    log.error("   │  └─ ✗ FAILURE | Status & Failure logged");
                 }
             }
 
             log.info("   │");
-            log.info("   ├─ Processing Summary:");
-            log.info("   │  ├─ Total Records: {}", records.size());
-            log.info("   │  ├─ Success Count: {}", successCount);
-            log.info("   │  └─ Failure Count: {}", failureCount);
-            log.info("   │");
+            log.info("   ├─ Processing Complete:");
+            log.info("   │  ├─ Total: {}", records.size());
+            log.info("   │  ├─ Success: {}", successCount);
+            log.info("   │  ├─ Failure: {}", failureCount);
+            log.info("   │  └─ Queries: {} (View + SmsLog checks)", records.size() + 1);
 
             if (failureCount == 0) {
-                log.info("   └─ Returning: ALL_SUCCESS (all {} records sent successfully!)", records.size());
+                log.info("   │");
+                log.info("   ├─ ✓ ALL SUCCESS! Creating ProcessingStatus record...");
+                createProcessingStatus(reportDate, records.size(), successCount, failureCount);
+                log.info("   │  └─ ProcessingStatus saved (optimization for next run)");
+                log.info("   └─ Returning: ALL_SUCCESS");
                 return ProcessingResult.ALL_SUCCESS;
             } else {
-                log.info("   └─ Returning: WITH_FAILURES ({} failures found, will retry next hour)", failureCount);
+                log.info("   └─ Returning: WITH_FAILURES ({} failures to retry next hour)", failureCount);
                 return ProcessingResult.WITH_FAILURES;
             }
 
@@ -123,8 +152,29 @@ public class NotificationServiceImpl implements NotificationService {
             log.error("   ✗ CRITICAL ERROR in processPendingSmsNotifications");
             log.error("   │ Error: {}", e.getMessage());
             log.error("   │ Cause: {}", e.getCause(), e);
-            log.error("   └─ Returning: WITH_FAILURES (treating as failure)");
+            log.error("   └─ Returning: WITH_FAILURES");
             return ProcessingResult.WITH_FAILURES;
+        }
+    }
+
+    private void createProcessingStatus(LocalDate reportDate, int totalCustomers, int successCount, int failureCount) {
+        try {
+            ProcessingStatus status = ProcessingStatus.builder()
+                    .reportDate(reportDate)
+                    .totalCustomers(totalCustomers)
+                    .successCount(successCount)
+                    .failureCount(failureCount)
+                    .isComplete(true)
+                    .completedAt(LocalDateTime.now())
+                    .lastCheckedAt(LocalDateTime.now())
+                    .notes("All SMS processed successfully on " + LocalDateTime.now())
+                    .build();
+
+            processingStatusRepository.save(status);
+            log.debug("   │  ProcessingStatus created: reportDate={}, isComplete=true", reportDate);
+
+        } catch (Exception e) {
+            log.error("   │  ✗ ERROR creating ProcessingStatus: {}", e.getMessage(), e);
         }
     }
 
