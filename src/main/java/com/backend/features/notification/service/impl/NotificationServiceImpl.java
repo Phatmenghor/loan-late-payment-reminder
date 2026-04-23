@@ -51,51 +51,37 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public ProcessingResult processPendingSmsNotifications() {
-        log.info("┌─────────────────────────────────────────────────────────────────────┐");
-        log.info("│ STEP 1: Processing SMS Notifications - Check View for COB Data     │");
-        log.info("└─────────────────────────────────────────────────────────────────────┘");
+        log.info("START: Processing SMS notifications");
 
         try {
             LocalDate reportDate = LocalDate.now().minusDays(1);
 
-            log.info("   ├─ Optimization Check: Query ProcessingStatus for {}", reportDate);
+            log.info("Checking ProcessingStatus for date: {}", reportDate);
             Optional<ProcessingStatus> existingStatus = processingStatusRepository.findCompleteByReportDate(reportDate);
 
             if (existingStatus.isPresent()) {
                 ProcessingStatus status = existingStatus.get();
-                log.info("   ├─ ✓ OPTIMIZATION HIT! Processing already complete");
-                log.info("   ├─ Details:");
-                log.info("   │  ├─ Report Date: {}", status.getReportDate());
-                log.info("   │  ├─ Total Customers: {}", status.getTotalCustomers());
-                log.info("   │  ├─ Success Count: {}", status.getSuccessCount());
-                log.info("   │  ├─ Failure Count: {}", status.getFailureCount());
-                log.info("   │  ├─ Completed At: {}", status.getCompletedAt());
-                log.info("   │  └─ Query Count: 1 (optimization saved {} queries!)",
-                        status.getTotalCustomers() + 1);
-                log.info("   │");
-                log.info("   └─ Skipping View query & SmsLog checks → Returning: ALL_SUCCESS");
+                log.info("OPTIMIZATION HIT: Processing already complete for {}", reportDate);
+                log.info("Details - Total: {} | Success: {} | Failure: {} | Completed: {}",
+                        status.getTotalCustomers(), status.getSuccessCount(), status.getFailureCount(), status.getCompletedAt());
+                log.info("Skipping View & SmsLog queries - returning ALL_SUCCESS");
                 return ProcessingResult.ALL_SUCCESS;
             }
 
-            log.info("   │");
-            log.info("   ├─ No optimization hit, proceeding with full processing");
-            log.info("   ├─ Loading message content from CPB...");
+            log.info("No optimization hit, proceeding with full processing");
+            log.info("Loading message content from CPB");
             String messageContent = cpbHelper.getContentDescription();
-            log.info("   │  └─ ✓ Message content loaded");
 
-            log.info("   ├─ Querying View: SELECT * FROM VIEW_LOAN_LATE_REMINDER");
+            log.info("Querying View: SELECT * FROM VIEW_LOAN_LATE_REMINDER");
             List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
-            log.info("   │  └─ ✓ View query executed");
 
             if (records.isEmpty()) {
-                log.warn("   ├─ ⊘ View is EMPTY - COB not yet finished");
-                log.info("   │  └─ No records to process");
-                log.info("   └─ Returning: COB_NOT_FINISHED");
+                log.info("View is empty - COB not yet finished");
+                log.info("END: Processing SMS notifications");
                 return ProcessingResult.COB_NOT_FINISHED;
             }
 
-            log.info("   ├─ ✓ COB FINISHED! View has {} records", records.size());
-            log.info("   ├─ Processing each record:");
+            log.info("COB finished - Found {} records to process", records.size());
 
             int successCount = 0;
             int failureCount = 0;
@@ -106,53 +92,41 @@ public class NotificationServiceImpl implements NotificationService {
                             record.getCustomerId(), record.getPhoneNumber(), record.getReportDate(), SMS_STATUS_SUCCESS);
 
                     if (existingLog.isPresent()) {
-                        log.debug("   │  ├─ [SKIP] Phone: {} | Already sent", record.getPhoneNumber());
                         continue;
                     }
 
-                    log.info("   │  ├─ [SEND] Phone: {} | Customer: {}",
-                            record.getPhoneNumber(), record.getCustomerId());
+                    log.info("Sending SMS to phone: {} | Customer: {}", record.getPhoneNumber(), record.getCustomerId());
 
                     sendSmsToApi(record.getPhoneNumber(), messageContent);
                     successCount++;
 
                     logToPostgresSQL(record, SMS_STATUS_SUCCESS, messageContent);
-                    log.info("   │  │  └─ ✓ SUCCESS");
 
                 } catch (Exception e) {
                     failureCount++;
-                    log.error("   │  ├─ [FAIL] Phone: {} | Error: {}",
-                            record.getPhoneNumber(), e.getMessage());
+                    log.error("SMS sending failed for phone: {} | Error: {}", record.getPhoneNumber(), e.getMessage());
 
                     logToPostgresSQL(record, SMS_STATUS_FAILURE, messageContent);
                     recordFailureLog(record, e.getMessage());
                 }
             }
 
-            log.info("   │");
-            log.info("   ├─ Processing Complete:");
-            log.info("   │  ├─ Total: {}", records.size());
-            log.info("   │  ├─ Success: {}", successCount);
-            log.info("   │  ├─ Failure: {}", failureCount);
-            log.info("   │  └─ Queries: {} (View + SmsLog checks)", records.size() + 1);
+            log.info("Processing result - Total: {} | Success: {} | Failure: {}", records.size(), successCount, failureCount);
 
             if (failureCount == 0) {
-                log.info("   │");
-                log.info("   ├─ ✓ ALL SUCCESS! Creating ProcessingStatus record...");
+                log.info("All SMS sent successfully - creating ProcessingStatus record");
                 createProcessingStatus(reportDate, records.size(), successCount, failureCount);
-                log.info("   │  └─ ProcessingStatus saved (optimization for next run)");
-                log.info("   └─ Returning: ALL_SUCCESS");
+                log.info("END: Processing SMS notifications");
                 return ProcessingResult.ALL_SUCCESS;
             } else {
-                log.info("   └─ Returning: WITH_FAILURES ({} failures to retry next hour)", failureCount);
+                log.info("Found {} failures - will retry next hour", failureCount);
+                log.info("END: Processing SMS notifications");
                 return ProcessingResult.WITH_FAILURES;
             }
 
         } catch (Exception e) {
-            log.error("   ✗ CRITICAL ERROR in processPendingSmsNotifications");
-            log.error("   │ Error: {}", e.getMessage());
-            log.error("   │ Cause: {}", e.getCause(), e);
-            log.error("   └─ Returning: WITH_FAILURES");
+            log.error("ERROR in processPendingSmsNotifications: {}", e.getMessage(), e);
+            log.info("END: Processing SMS notifications");
             return ProcessingResult.WITH_FAILURES;
         }
     }
@@ -167,14 +141,14 @@ public class NotificationServiceImpl implements NotificationService {
                     .isComplete(true)
                     .completedAt(LocalDateTime.now())
                     .lastCheckedAt(LocalDateTime.now())
-                    .notes("All SMS processed successfully on " + LocalDateTime.now())
+                    .notes("All SMS processed successfully")
                     .build();
 
             processingStatusRepository.save(status);
-            log.debug("   │  ProcessingStatus created: reportDate={}, isComplete=true", reportDate);
+            log.info("ProcessingStatus created for {}: complete=true", reportDate);
 
         } catch (Exception e) {
-            log.error("   │  ✗ ERROR creating ProcessingStatus: {}", e.getMessage(), e);
+            log.error("ERROR creating ProcessingStatus: {}", e.getMessage(), e);
         }
     }
 
@@ -204,34 +178,26 @@ public class NotificationServiceImpl implements NotificationService {
             failureLog.setStatus(SMS_STATUS_FAILURE);
 
             smsFailureLogRepository.save(failureLog);
-            log.debug("   │ Failure Log Updated: Phone={} | RetryCount={} | Reason={}",
-                    record.getPhoneNumber(), failureLog.getRetryCount(), failureReason);
 
         } catch (Exception e) {
-            log.error("   │ ✗ ERROR recording failure log for phone: {} | Error: {}",
-                    record.getPhoneNumber(), e.getMessage(), e);
+            log.error("ERROR recording failure log for phone: {}: {}", record.getPhoneNumber(), e.getMessage(), e);
         }
     }
 
     public void sendSmsDirectly(String phoneNumber, String messageContent) throws RestClientException {
-        log.debug("   │  Sending SMS directly (retry attempt): {}", phoneNumber);
         sendSmsToApi(phoneNumber, messageContent);
         logToPostgreSQLSimple(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
-        log.debug("   │  Direct SMS sent and logged successfully");
     }
 
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
-            log.debug("   │  API URL: {}", apiUrl);
-            log.debug("   │  Payload built for phone: {}", phoneNumber);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
 
-            log.debug("   │  Sending HTTP POST request to CPB API...");
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
                     apiUrl,
                     request,
@@ -239,17 +205,14 @@ public class NotificationServiceImpl implements NotificationService {
             );
 
             if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
-                String responseStatus = apiResponse.getBody().getDesc();
-                log.debug("   │  CPB API Response Status: {}", responseStatus);
-                return responseStatus;
+                return apiResponse.getBody().getDesc();
             }
 
-            log.warn("   │  ✗ No response body received from CPB API");
+            log.warn("No response body received from CPB API");
             return SMS_STATUS_FAILURE;
 
         } catch (RestClientException e) {
-            log.error("   │  ✗ CPB API Request Failed for phone: {} | Error: {}",
-                    phoneNumber, e.getMessage(), e);
+            log.error("CPB API request failed for phone: {}: {}", phoneNumber, e.getMessage(), e);
             throw e;
         }
     }
@@ -268,12 +231,9 @@ public class NotificationServiceImpl implements NotificationService {
                     .build();
 
             smsLogRepository.save(smsLog);
-            log.debug("   │ Audit Log Saved to SmsLog: Phone={} | Status={} | Date={}",
-                    record.getPhoneNumber(), status, smsLog.getSmsLogDate());
 
         } catch (Exception e) {
-            log.error("   │ ✗ ERROR saving audit log to SmsLog: Phone={} | Error: {}",
-                    record.getPhoneNumber(), e.getMessage(), e);
+            log.error("ERROR saving audit log for phone: {}: {}", record.getPhoneNumber(), e.getMessage(), e);
         }
     }
 
@@ -287,38 +247,26 @@ public class NotificationServiceImpl implements NotificationService {
                     .build();
 
             smsLogRepository.save(smsLog);
-            log.debug("   │ Test SMS Audit Log Saved: Phone={} | Status={}", phoneNumber, status);
 
         } catch (Exception e) {
-            log.error("   │ ✗ ERROR saving test SMS audit log: Phone={} | Error: {}", phoneNumber, e.getMessage(), e);
+            log.error("ERROR saving SMS audit log for phone: {}: {}", phoneNumber, e.getMessage(), e);
         }
     }
 
     @Override
     public String sendTestSms(SendSmsRequestDto request) {
-        log.info("┌─────────────────────────────────────────────────────────────────────┐");
-        log.info("│ TEST SMS REQUEST                                                    │");
-        log.info("├─────────────────────────────────────────────────────────────────────┤");
-        log.info("│ Phone: {}", String.format("%-64s", request.getPhoneNumber() + " │"));
-        log.info("│ Message: {}", String.format("%-62s", (request.getMessageContent().substring(0, Math.min(62, request.getMessageContent().length())) + "...") + " │"));
-        log.info("└─────────────────────────────────────────────────────────────────────┘");
+        log.info("TEST SMS: Sending to phone: {}", request.getPhoneNumber());
 
         try {
-            log.info("   → Sending SMS via CPB API...");
             sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
             logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_SUCCESS, request.getMessageContent());
 
-            log.info("   ✓ Test SMS sent successfully");
-            log.info("   │ Status: {}", SMS_STATUS_SUCCESS);
-            log.info("   └─ Audit log saved to SmsLog");
+            log.info("TEST SMS: Sent successfully");
             return SMS_STATUS_SUCCESS;
 
         } catch (Exception e) {
-            log.error("   ✗ Test SMS sending FAILED");
-            log.error("   │ Phone: {}", request.getPhoneNumber());
-            log.error("   │ Error: {}", e.getMessage());
+            log.error("TEST SMS: Failed for phone: {}: {}", request.getPhoneNumber(), e.getMessage(), e);
             logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_FAILURE, request.getMessageContent());
-            log.error("   └─ Failure logged to SmsLog");
             throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
         }
     }
@@ -326,61 +274,31 @@ public class NotificationServiceImpl implements NotificationService {
     // ============ SCHEDULER BUSINESS LOGIC ============
 
     public void processWithRetry(String timeLabel) {
-        log.info("");
-        log.info("╔══════════════════════════════════════════════════════════════════════════╗");
-        log.info("║ HOURLY SCHEDULED PROCESSING: {} (Processing Yesterday's Overdue Loans)  ║", String.format("%-38s", timeLabel));
-        log.info("╚══════════════════════════════════════════════════════════════════════════╝");
+        log.info("START: Hourly SMS processing at {}", timeLabel);
 
         try {
             LocalDate reportDate = LocalDate.now().minusDays(1);
-            log.info("   Processing for Report Date: {}", reportDate);
-            log.info("");
+            log.info("Processing for report date: {}", reportDate);
 
             ProcessingResult result = processPendingSmsNotifications();
-            log.info("");
 
             if (result == ProcessingResult.COB_NOT_FINISHED) {
-                log.info("┌─────────────────────────────────────────────────────────────────────┐");
-                log.info("│ RESULT: COB NOT FINISHED - Skipping further processing              │");
-                log.info("├─────────────────────────────────────────────────────────────────────┤");
-                log.info("│ Action: RETURN early - wait for next hourly run                    │");
-                log.info("│ Reason: View is empty, COB still populating data                   │");
-                log.info("│ Next Step: Will retry at next scheduled hour                       │");
-                log.info("└─────────────────────────────────────────────────────────────────────┘");
+                log.info("RESULT: COB not finished - skipping processing");
                 return;
             }
 
             if (isProcessingComplete(reportDate)) {
-                log.info("┌─────────────────────────────────────────────────────────────────────┐");
-                log.info("│ RESULT: ALL SMS PROCESSING COMPLETE ✓✓✓                            │");
-                log.info("├─────────────────────────────────────────────────────────────────────┤");
-                log.info("│ Status: All SMS sent successfully                                   │");
-                log.info("│ Failures: 0 (SmsFailureLog is empty)                               │");
-                log.info("│ Action: Skipping future processing to save resources               │");
-                log.info("│ Benefit: No unnecessary database queries/API calls                 │");
-                log.info("└─────────────────────────────────────────────────────────────────────┘");
+                log.info("RESULT: All SMS processing complete - no more failures");
                 return;
             }
 
-            log.info("┌─────────────────────────────────────────────────────────────────────┐");
-            log.info("│ PROCESSING STATUS: Continuing - Failures Still Exist                │");
-            log.info("├─────────────────────────────────────────────────────────────────────┤");
-            log.info("│ Status: {} - Retries will happen automatically                     │", result.getDescription());
-            log.info("│ Action: processPendingSmsNotifications will retry failures on next│");
-            log.info("│         hourly run by checking SmsLog for non-SUCCESS records    │");
-            log.info("│ Next Step: Will retry at {}                                        │", getNextHourlyTime(timeLabel));
-            log.info("└─────────────────────────────────────────────────────────────────────┘");
+            log.info("RESULT: {} - will retry failures next hour", result.getDescription());
 
         } catch (Exception e) {
-            log.error("╔══════════════════════════════════════════════════════════════════════════╗");
-            log.error("║ ✗ CRITICAL ERROR in processWithRetry at {}                              ║", String.format("%-38s", timeLabel));
-            log.error("╠══════════════════════════════════════════════════════════════════════════╣");
-            log.error("║ Error Message: {}", String.format("%-59s", e.getMessage()));
-            log.error("║ Exception Type: {}", String.format("%-56s", e.getClass().getSimpleName()));
-            log.error("║ Root Cause: {}", String.format("%-60s", e.getCause() != null ? e.getCause().toString() : "N/A"));
-            log.error("╚══════════════════════════════════════════════════════════════════════════╝");
-            log.error("   Stack Trace:", e);
+            log.error("ERROR in processWithRetry at {}: {}", timeLabel, e.getMessage(), e);
         }
+
+        log.info("END: Hourly SMS processing");
     }
 
     private String getNextHourlyTime(String currentTime) {
@@ -394,46 +312,20 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private boolean isProcessingComplete(LocalDate reportDate) {
-        log.info("┌─────────────────────────────────────────────────────────────────────┐");
-        log.info("│ STEP 2: Checking Completion Status                                  │");
-        log.info("└─────────────────────────────────────────────────────────────────────┘");
-
         try {
-            log.info("   Querying SmsFailureLog for reportDate: {}", reportDate);
+            log.info("Checking completion status for {}", reportDate);
             List<SmsFailureLog> failedRecords = smsFailureLogRepository.findFailedRecordsByReportDate(reportDate);
-            log.info("   Query result: {} failure records found", failedRecords.size());
 
             if (!failedRecords.isEmpty()) {
-                log.info("   │");
-                log.info("   ├─ Status: NOT COMPLETE");
-                log.info("   ├─ Reason: {} failures still exist", failedRecords.size());
-                log.info("   ├─ Details:");
-
-                for (SmsFailureLog failure : failedRecords) {
-                    log.info("   │  ├─ Phone: {} | Customer: {} | Retry Count: {} | Reason: {}",
-                            failure.getPhoneNumber(), failure.getCustomerId(),
-                            failure.getRetryCount(), failure.getFailureReason());
-                }
-
-                log.info("   │");
-                log.info("   └─ Action: Will retry these records on next hourly run");
+                log.info("Processing NOT complete: {} failures still exist", failedRecords.size());
                 return false;
             }
 
-            log.info("   │");
-            log.info("   ├─ Status: ✓✓✓ COMPLETE");
-            log.info("   ├─ Reason: SmsFailureLog is EMPTY (no failures remaining)");
-            log.info("   ├─ Verification: All customers have successful SMS");
-            log.info("   │");
-            log.info("   └─ Action: Stop processing, no future retries needed");
+            log.info("Processing complete: No failures remaining");
             return true;
 
         } catch (Exception e) {
-            log.error("   ✗ ERROR checking completion status");
-            log.error("   │ Error: {}", e.getMessage());
-            log.error("   │ Exception: {}", e.getClass().getSimpleName());
-            log.error("   │ Stack:", e);
-            log.error("   └─ Action: Treat as NOT COMPLETE (safer approach)");
+            log.error("ERROR checking completion status: {}", e.getMessage(), e);
             return false;
         }
     }
