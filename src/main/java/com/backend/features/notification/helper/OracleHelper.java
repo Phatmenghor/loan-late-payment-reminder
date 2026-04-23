@@ -13,16 +13,14 @@ import java.util.List;
 @Slf4j
 public class OracleHelper {
 
-    public List<LoanLateReminderDto> selectLoanLateReminderRecords(LocalDate reportDate) {
+    public List<LoanLateReminderDto> selectLoanLateReminderRecords() {
         List<LoanLateReminderDto> records = new ArrayList<>();
         String query = "SELECT reportdate, customerid, mbapp_phone, arrangement_id, daydue " +
-                "FROM STG.VIEW_LOAN_LATE_REMINDER " +
-                "WHERE TRUNC(reportdate) = ?";
+                "FROM STG.VIEW_LOAN_LATE_REMINDER";
 
         try (Connection con = OracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
 
-            ps.setDate(1, Date.valueOf(reportDate));
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -36,11 +34,11 @@ public class OracleHelper {
                 records.add(record);
             }
 
-            log.info("Oracle: Selected {} loan late reminder records for date: {}", records.size(), reportDate);
+            log.info("Oracle: Selected {} loan late reminder records from view", records.size());
             return records;
 
         } catch (SQLException e) {
-            log.error("Oracle: Error fetching loan late reminder records for date: {} | Error: {}", reportDate, e.getMessage(), e);
+            log.error("Oracle: Error fetching loan late reminder records from view | Error: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to select loan late reminder records from Oracle", e);
         }
     }

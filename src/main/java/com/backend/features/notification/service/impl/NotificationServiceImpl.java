@@ -50,19 +50,18 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("========== START: Processing SMS notifications ==========");
 
         try {
-            LocalDate reportDate = LocalDate.now().minusDays(1);
             String messageContent = cpbHelper.getContentDescription();
             log.info("SMS message content loaded: {}", messageContent);
 
-            List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords(reportDate);
+            List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
 
             if (records.isEmpty()) {
-                log.info("✓ No loan late reminder records found for date: {} (COB may not be complete)", reportDate);
+                log.info("✓ No loan late reminder records found (view may be empty if COB not complete)");
                 log.info("========== END: Processing SMS notifications ==========");
                 return;
             }
 
-            log.info("✓ Found {} loan late reminder records to process for date: {}", records.size(), reportDate);
+            log.info("✓ Found {} loan late reminder records to process", records.size());
 
             int successCount = 0;
             int failureCount = 0;
