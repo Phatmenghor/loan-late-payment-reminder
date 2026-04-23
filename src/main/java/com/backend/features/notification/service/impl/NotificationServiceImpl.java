@@ -65,7 +65,6 @@ public class NotificationServiceImpl implements NotificationService {
                     log.info("========== START: Processing SMS for phone: {} ==========", phoneNumber);
 
                     String apiResponse = sendSmsToApi(phoneNumber, messageContent);
-                    oracleHelper.updateSmsStatus(phoneNumber, apiResponse);
                     successCount++;
 
                     logToPostgresSQL(phoneNumber, apiResponse, messageContent);
@@ -76,11 +75,6 @@ public class NotificationServiceImpl implements NotificationService {
                     failureCount++;
                     log.error("✗ SMS sending failed | Phone: {} | Error: {}", phoneNumber, e.getMessage());
                     logToPostgresSQL(phoneNumber, SMS_STATUS_FAILED, messageContent);
-                    try {
-                        oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
-                    } catch (Exception ex) {
-                        log.error("✗ Failed to update Oracle status for phone: {} | Error: {}", phoneNumber, ex.getMessage());
-                    }
                 }
             }
 
