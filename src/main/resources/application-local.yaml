@@ -5,10 +5,10 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:123cp!@#}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -26,13 +26,13 @@ app:
 # CPB API Configuration
 cpb:
   api:
-    url: ${API_URL:http://localhost:9393}
+    url: ${API_URL:http://10.18.1.47:9393}
     encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
 
 # Oracle Database Configuration
 datasource:
   oracle:
-    enabled: true
+    enabled: false
     url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
     username: ${ORACLE_USERNAME:dwh}
     password: ${ORACLE_PASSWORD:Bnk$$444}

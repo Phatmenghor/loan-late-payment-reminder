@@ -62,8 +62,7 @@ public class SignKeyGenerator {
         try {
             jsonObject.put("phone", phone);
             jsonObject.put("content", content);
-            jsonObject.put("username", cpbApiConfig.getUsername());
-            jsonObject.put("password", cpbApiConfig.getPassword());
+            jsonObject.put("key", cpbApiConfig.getEncryptionKey());
             return jsonObject.toString();
         } catch (JSONException e) {
             log.error("Error creating JSON payload", e);
