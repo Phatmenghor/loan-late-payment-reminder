@@ -1,4 +1,5 @@
-# Development Server Configuration
+# Development Configuration (overrides base application.yaml)
+
 server:
   port: ${SERVER_PORT:9393}
 
@@ -11,20 +12,10 @@ spring:
     hikari:
       maximum-pool-size: 15
       minimum-idle: 3
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
 
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
-
-  flyway:
-    enabled: false
 
 # Authentication
 auth:
@@ -46,8 +37,6 @@ datasource:
     driver-class-name: oracle.jdbc.driver.OracleDriver
     maximum-pool-size: 5
     minimum-idle: 2
-    connection-timeout: 20000
-    idle-timeout: 300000
 
 logging:
   level:
