@@ -65,16 +65,23 @@ public class NotificationServiceImpl implements NotificationService {
                     log.info("========== START: Processing SMS for phone: {} ==========", phoneNumber);
 
                     String apiResponse = sendSmsToApi(phoneNumber, messageContent);
+                    String finalStatus = apiResponse != null ? apiResponse : SMS_STATUS_SUCCESS;
+                    oracleHelper.updateSmsStatus(phoneNumber, finalStatus);
                     successCount++;
 
-                    logToPostgresSQL(phoneNumber, apiResponse, messageContent);
-                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, apiResponse);
+                    logToPostgresSQL(phoneNumber, finalStatus, messageContent);
+                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, finalStatus);
                     log.info("========== END: SMS processing completed for phone: {} ==========", phoneNumber);
 
                 } catch (Exception e) {
                     failureCount++;
                     log.error("✗ SMS sending failed | Phone: {} | Error: {}", phoneNumber, e.getMessage());
                     logToPostgresSQL(phoneNumber, SMS_STATUS_FAILED, messageContent);
+                    try {
+                        oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
+                    } catch (Exception ex) {
+                        log.error("✗ Failed to update Oracle status for phone: {} | Error: {}", phoneNumber, ex.getMessage());
+                    }
                 }
             }
 
