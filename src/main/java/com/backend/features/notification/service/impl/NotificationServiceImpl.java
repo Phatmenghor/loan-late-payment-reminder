@@ -2,7 +2,6 @@ package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.dto.ReceptionFormatDto;
-import com.backend.features.notification.helper.NotificationLogger;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
 import com.backend.features.notification.service.NotificationService;
@@ -28,63 +27,55 @@ public class NotificationServiceImpl implements NotificationService {
     private final RestTemplate restTemplate;
     private final NotificationPayloadBuilder payloadBuilder;
     private final CpbApiConfig cpbApiConfig;
-    private final NotificationLogger notificationLogger;
     private final OracleHelper oracleHelper;
 
     @Override
     public void processPendingSmsNotifications() {
-        notificationLogger.logProcessStart();
+        log.info("========== START: Processing pending SMS notifications from Oracle ==========");
 
         try {
-            // Step 1: SELECT all pending SMS phone numbers from Oracle
             List<String> phoneNumbers = oracleHelper.selectPendingSmsPhoneNumbers();
 
             if (phoneNumbers.isEmpty()) {
-                notificationLogger.logNoPendingSms();
-                notificationLogger.logProcessEnd(0, 0);
+                log.info("✓ No pending SMS notifications found");
+                log.info("========== END: Processing pending SMS notifications ==========");
                 return;
             }
 
-            notificationLogger.logPendingSmsFetched(phoneNumbers.size());
+            log.info("✓ Found {} pending SMS notifications to process", phoneNumbers.size());
 
-            // Step 2: Loop through each pending SMS
             int successCount = 0;
             int failureCount = 0;
 
             for (String phoneNumber : phoneNumbers) {
                 try {
-                    notificationLogger.logSmsProcessStart(phoneNumber);
+                    log.info("========== START: Processing SMS for phone: {} ==========", phoneNumber);
 
-                    // Step 1: Send SMS to API
                     String apiResponse = sendSmsToApi(phoneNumber, "Loan payment reminder");
-
-                    // Step 2: UPDATE SMS status in Oracle
                     oracleHelper.updateSmsStatus(phoneNumber, apiResponse);
                     successCount++;
-                    notificationLogger.logSmsSuccess(phoneNumber, apiResponse);
-                    notificationLogger.logSmsProcessEnd(phoneNumber);
+
+                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, apiResponse);
+                    log.info("========== END: SMS processing completed for phone: {} ==========", phoneNumber);
 
                 } catch (Exception e) {
                     failureCount++;
-                    notificationLogger.logSmsFailure(phoneNumber, e.getMessage());
+                    log.error("✗ SMS sending failed | Phone: {} | Error: {}", phoneNumber, e.getMessage());
                     try {
                         oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
                     } catch (Exception ex) {
-                        notificationLogger.logException("Oracle UPDATE on failure", ex);
+                        log.error("✗ Failed to update Oracle status for phone: {} | Error: {}", phoneNumber, ex.getMessage());
                     }
-                    notificationLogger.logException("SMS Processing", e);
                 }
             }
 
-            notificationLogger.logProcessEnd(successCount, failureCount);
+            log.info("========== RESULT: Success: {}, Failed: {} ==========", successCount, failureCount);
+            log.info("========== END: Processing pending SMS notifications ==========");
 
         } catch (Exception e) {
-            notificationLogger.logException("Pending SMS Processing", e);
+            log.error("✗ Exception in Pending SMS Processing: {} | Cause: {}", e.getMessage(), e.getCause(), e);
         }
     }
-
-
-    // ===== PRIVATE METHODS =====
 
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
         try {
