@@ -17,7 +17,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
@@ -37,17 +37,17 @@ cpb:
     url: ${API_URL:http://localhost:9393}
     encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
 
-# Oracle Database Configuration
-datasource:
-  oracle:
-    url: ${ORACLE_URL:jdbc:oracle:thin:@localhost:1521:xe}
-    username: ${ORACLE_USERNAME:system}
-    password: ${ORACLE_PASSWORD:oracle}
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    maximum-pool-size: 3
-    minimum-idle: 1
-    connection-timeout: 20000
-    idle-timeout: 300000
+# Oracle Database Configuration (disabled for local development)
+# datasource:
+#   oracle:
+#     url: ${ORACLE_URL:jdbc:oracle:thin:@localhost:1521:xe}
+#     username: ${ORACLE_USERNAME:system}
+#     password: ${ORACLE_PASSWORD:oracle}
+#     driver-class-name: oracle.jdbc.driver.OracleDriver
+#     maximum-pool-size: 3
+#     minimum-idle: 1
+#     connection-timeout: 20000
+#     idle-timeout: 300000
 
 logging:
   level:

@@ -9,8 +9,6 @@
 spring:
   application:
     name: sms-loan-late
-  profiles:
-    active: dev # ← change to "local" or "dev" as needed
 
   # PostgreSQL (Primary datasource - auto-configured by Spring Boot)
   datasource:
@@ -28,6 +26,7 @@ spring:
   # JPA  – common settings (ddl-auto overridden per profile)
   jpa:
     open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         jdbc:
@@ -42,6 +41,11 @@ spring:
   # Flyway
   flyway:
     enabled: false
+
+  # SQL initialization
+  sql:
+    init:
+      mode: never
 
 # Server
 server:
