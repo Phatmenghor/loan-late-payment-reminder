@@ -1,10 +1,8 @@
 package com.backend.features.notification.helper;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
 import java.sql.*;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,17 +12,11 @@ import java.util.List;
 @Slf4j
 public class OracleHelper {
 
-    private final DataSource oracleDataSource;
-
-    public OracleHelper(@Qualifier("oracleDataSource") DataSource oracleDataSource) {
-        this.oracleDataSource = oracleDataSource;
-    }
-
     public List<String> selectPendingSmsPhoneNumbers() {
         List<String> phoneNumbers = new ArrayList<>();
         String query = "SELECT Tell FROM D_Cbs_Sms_Log_Test WHERE Sms_Status != ?";
 
-        try (Connection con = oracleDataSource.getConnection();
+        try (Connection con = OracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
 
             ps.setString(1, "SVC-SUCCESS-00");
@@ -48,7 +40,7 @@ public class OracleHelper {
     public void updateSmsStatus(String phoneNumber, String status) {
         String query = "UPDATE D_Cbs_Sms_Log_Test SET Sms_Status = ?, Sms_Log_Dt = ? WHERE Tell = ?";
 
-        try (Connection con = oracleDataSource.getConnection();
+        try (Connection con = OracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
 
             ps.setString(1, status);
@@ -69,3 +61,4 @@ public class OracleHelper {
         }
     }
 }
+

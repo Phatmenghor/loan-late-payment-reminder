@@ -2,6 +2,7 @@ package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.dto.ReceptionFormatDto;
+import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
 import com.backend.features.notification.models.SmsLog;
@@ -32,12 +33,16 @@ public class NotificationServiceImpl implements NotificationService {
     private final CpbApiConfig cpbApiConfig;
     private final OracleHelper oracleHelper;
     private final SmsLogRepository smsLogRepository;
+    private final CpbHelper cpbHelper;
 
     @Override
     public void processPendingSmsNotifications() {
         log.info("========== START: Processing pending SMS notifications from Oracle ==========");
 
         try {
+            String messageContent = cpbHelper.getContentDescription();
+            log.info("SMS message content loaded from D_CBS_SETTING: {}", messageContent);
+
             List<String> phoneNumbers = oracleHelper.selectPendingSmsPhoneNumbers();
 
             if (phoneNumbers.isEmpty()) {
@@ -55,18 +60,18 @@ public class NotificationServiceImpl implements NotificationService {
                 try {
                     log.info("========== START: Processing SMS for phone: {} ==========", phoneNumber);
 
-                    String apiResponse = sendSmsToApi(phoneNumber, "Loan payment reminder");
+                    String apiResponse = sendSmsToApi(phoneNumber, messageContent);
                     oracleHelper.updateSmsStatus(phoneNumber, apiResponse);
                     successCount++;
 
-                    logToPostgresSQL(phoneNumber, apiResponse, "Loan payment reminder");
+                    logToPostgresSQL(phoneNumber, apiResponse, messageContent);
                     log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, apiResponse);
                     log.info("========== END: SMS processing completed for phone: {} ==========", phoneNumber);
 
                 } catch (Exception e) {
                     failureCount++;
                     log.error("✗ SMS sending failed | Phone: {} | Error: {}", phoneNumber, e.getMessage());
-                    logToPostgresSQL(phoneNumber, SMS_STATUS_FAILED, "Loan payment reminder");
+                    logToPostgresSQL(phoneNumber, SMS_STATUS_FAILED, messageContent);
                     try {
                         oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
                     } catch (Exception ex) {
