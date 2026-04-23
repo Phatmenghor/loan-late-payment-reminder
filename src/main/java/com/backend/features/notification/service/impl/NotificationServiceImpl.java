@@ -7,6 +7,7 @@ import com.backend.features.notification.dto.response.SmsLogResponse;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.helper.NotificationLogger;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
+import com.backend.features.notification.helper.OracleHelper;
 import com.backend.features.notification.mapper.SmsLogMapper;
 import com.backend.features.notification.models.SmsLog;
 import com.backend.features.notification.repository.SmsLogRepository;
@@ -41,45 +42,55 @@ public class NotificationServiceImpl implements NotificationService {
     private final SmsLogMapper smsLogMapper;
     private final CpbApiConfig cpbApiConfig;
     private final NotificationLogger notificationLogger;
+    private final OracleHelper oracleHelper;
 
     @Override
     public void processPendingSmsNotifications() {
         notificationLogger.logProcessStart();
 
         try {
-            // Step 1: SELECT all pending SMS logs from database
-            List<SmsLog> pendingSmsList = selectPendingSmsList();
+            // Step 1: SELECT all pending SMS phone numbers from Oracle
+            List<String> phoneNumbers = oracleHelper.selectPendingSmsPhoneNumbers();
 
-            if (pendingSmsList.isEmpty()) {
+            if (phoneNumbers.isEmpty()) {
                 notificationLogger.logNoPendingSms();
                 notificationLogger.logProcessEnd(0, 0);
                 return;
             }
 
-            notificationLogger.logPendingSmsFetched(pendingSmsList.size());
+            notificationLogger.logPendingSmsFetched(phoneNumbers.size());
 
             // Step 2: Loop through each pending SMS
             int successCount = 0;
             int failureCount = 0;
 
-            for (SmsLog smsLog : pendingSmsList) {
+            for (String phoneNumber : phoneNumbers) {
                 try {
-                    notificationLogger.logSmsProcessStart(smsLog.getPhoneNumber());
+                    notificationLogger.logSmsProcessStart(phoneNumber);
 
                     // Step 3: Send SMS to API
-                    String apiResponse = sendSmsToApi(smsLog.getPhoneNumber(), smsLog.getMessageContent());
+                    String apiResponse = sendSmsToApi(phoneNumber, "Loan payment reminder");
 
-                    // Step 4: UPDATE SMS status in database
-                    updateSmsLogStatus(smsLog, apiResponse);
+                    // Step 4: UPDATE SMS status in Oracle
+                    oracleHelper.updateSmsStatus(phoneNumber, apiResponse);
                     successCount++;
-                    notificationLogger.logSmsSuccess(smsLog.getPhoneNumber(), apiResponse);
-                    notificationLogger.logSmsProcessEnd(smsLog.getPhoneNumber());
+
+                    // Step 5: LOG the result to PostgreSQL for audit trail
+                    logSmsResult(phoneNumber, apiResponse);
+                    notificationLogger.logSmsSuccess(phoneNumber, apiResponse);
+                    notificationLogger.logSmsProcessEnd(phoneNumber);
 
                 } catch (Exception e) {
                     failureCount++;
-                    notificationLogger.logSmsFailure(smsLog.getPhoneNumber(), e.getMessage());
-                    // UPDATE SMS status as FAILED in database
-                    updateSmsLogStatus(smsLog, SMS_STATUS_FAILED);
+                    notificationLogger.logSmsFailure(phoneNumber, e.getMessage());
+                    // UPDATE SMS status as FAILED in Oracle
+                    try {
+                        oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
+                    } catch (Exception ex) {
+                        notificationLogger.logException("Oracle UPDATE on failure", ex);
+                    }
+                    // LOG the failure to PostgreSQL
+                    logSmsFailure(phoneNumber, e.getMessage());
                     notificationLogger.logException("SMS Processing", e);
                 }
             }
@@ -96,22 +107,19 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("========== START: Sending SMS to phone: {} ==========", request.getPhoneNumber());
 
         try {
-            // Step 1: Create and INSERT SMS log into database
-            SmsLog smsLog = createAndInsertSmsLog(request);
-            log.info("✓ SMS log created in database with status: {}", smsLog.getSmsStatus());
-
-            // Step 2: Send SMS to API
+            // Step 1: Send SMS to API
             String apiResponse = sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
+            log.info("✓ API response received: {}", apiResponse);
 
-            // Step 3: UPDATE SMS status in database based on API response
-            updateSmsLogStatus(smsLog, apiResponse);
-            log.info("✓ SMS status updated in database: {}", apiResponse);
+            // Step 2: LOG result to PostgreSQL for audit trail
+            logSmsResult(request.getPhoneNumber(), apiResponse);
+            log.info("✓ SMS result logged to PostgreSQL");
 
             log.info("========== END: SMS sent successfully ==========");
 
             return SendSmsResponse.builder()
                     .status("SUCCESS")
-                    .message("SMS sent and logged to database")
+                    .message("SMS sent and logged")
                     .phoneNumber(request.getPhoneNumber())
                     .smsStatus(apiResponse)
                     .build();
@@ -120,6 +128,8 @@ public class NotificationServiceImpl implements NotificationService {
             log.error("✗ Failed to send SMS to phone: {} | Error: {}",
                     request.getPhoneNumber(), e.getMessage());
             log.error("========== END: SMS sending failed ==========");
+            // LOG failure to PostgreSQL
+            logSmsFailure(request.getPhoneNumber(), e.getMessage());
             throw new RuntimeException("Failed to send SMS", e);
         }
     }
@@ -142,23 +152,13 @@ public class NotificationServiceImpl implements NotificationService {
                 .collect(Collectors.toList());
     }
 
-    // ===== PRIVATE METHODS (Following old pattern: SELECT, SEND, UPDATE) =====
+    // ===== PRIVATE METHODS =====
 
     /**
-     * Step 1: SELECT all pending SMS logs from database
-     * Pattern: SELECT * FROM loan_sms_log WHERE sms_status != 'SVC-SUCCESS-00'
-     */
-    private List<SmsLog> selectPendingSmsList() {
-        log.debug("DATABASE: Executing SELECT for pending SMS notifications");
-        return smsLogRepository.findAllByStatusNotEqual(SMS_STATUS_SUCCESS);
-    }
-
-    /**
-     * Step 2: CREATE and INSERT new SMS log to database
-     * Pattern: INSERT INTO loan_sms_log (phone_number, message_content, sms_status, sms_log_date)
+     * CREATE and INSERT new SMS log to PostgreSQL (for manual sends)
      */
     private SmsLog createAndInsertSmsLog(SendSmsRequest request) {
-        log.debug("DATABASE: Executing INSERT for new SMS log");
+        log.debug("PostgreSQL: Executing INSERT for new SMS log");
         SmsLog smsLog = SmsLog.builder()
                 .phoneNumber(request.getPhoneNumber())
                 .messageContent(request.getMessageContent())
@@ -170,27 +170,23 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * Step 3: SEND SMS to external API
+     * SEND SMS to external API
      * Returns the status from API response
      */
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
         try {
-            // Build JSON payload
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
             log.debug("API: Preparing SMS payload for phone: {}", phoneNumber);
 
-            // Get API endpoint from configuration
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
             log.info("API: Sending request to: {}", apiUrl);
 
-            // POST request to API
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
                     apiUrl,
                     jsonPayload,
                     ReceptionFormatDto.class
             );
 
-            // Extract and return response status
             if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
                 String responseStatus = apiResponse.getBody().getDesc();
                 log.info("API: Received response status: {}", responseStatus);
@@ -207,25 +203,46 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * Step 4: UPDATE SMS status in database based on API response
-     * Pattern: UPDATE loan_sms_log SET sms_status = ?, sms_log_date = ? WHERE id = ?
+     * LOG SMS result to PostgreSQL (for manual sends from REST API)
      */
-    private void updateSmsLogStatus(SmsLog smsLog, String status) {
+    private void logSmsResult(String phoneNumber, String status) {
         try {
-            log.debug("DATABASE: Executing UPDATE for SMS log | Phone: {} | New Status: {}",
-                    smsLog.getPhoneNumber(), status);
+            log.debug("PostgreSQL: Logging SMS result for phone: {} | Status: {}", phoneNumber, status);
 
-            smsLog.setSmsStatus(status);
-            smsLog.setSmsLogDate(LocalDateTime.now());
+            SmsLog smsLog = SmsLog.builder()
+                    .phoneNumber(phoneNumber)
+                    .messageContent("Loan payment reminder")
+                    .smsStatus(status)
+                    .smsLogDate(LocalDateTime.now())
+                    .build();
+
             smsLogRepository.save(smsLog);
-
-            log.info("DATABASE: ✓ SMS status updated successfully | Phone: {} | Status: {}",
-                    smsLog.getPhoneNumber(), status);
+            log.info("PostgreSQL: ✓ SMS result logged successfully | Phone: {} | Status: {}", phoneNumber, status);
 
         } catch (Exception e) {
-            log.error("DATABASE: ✗ Failed to update SMS status for phone: {}",
-                    smsLog.getPhoneNumber(), e);
-            throw new RuntimeException("Failed to update SMS log status", e);
+            log.error("PostgreSQL: ✗ Failed to log SMS result for phone: {}", phoneNumber, e);
+        }
+    }
+
+    /**
+     * LOG SMS failure to PostgreSQL (for audit trail)
+     */
+    private void logSmsFailure(String phoneNumber, String errorMessage) {
+        try {
+            log.debug("PostgreSQL: Logging SMS failure for phone: {}", phoneNumber);
+
+            SmsLog smsLog = SmsLog.builder()
+                    .phoneNumber(phoneNumber)
+                    .messageContent("Loan payment reminder")
+                    .smsStatus(SMS_STATUS_FAILED + " - " + errorMessage)
+                    .smsLogDate(LocalDateTime.now())
+                    .build();
+
+            smsLogRepository.save(smsLog);
+            log.info("PostgreSQL: ✓ SMS failure logged successfully | Phone: {}", phoneNumber);
+
+        } catch (Exception e) {
+            log.error("PostgreSQL: ✗ Failed to log SMS failure for phone: {}", phoneNumber, e);
         }
     }
 }
