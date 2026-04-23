@@ -1,14 +1,14 @@
 package com.backend.features.notification.controller;
 
+import com.backend.features.notification.dto.SendSmsRequestDto;
 import com.backend.features.notification.service.NotificationService;
 import com.backend.shared.dto.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -25,5 +25,13 @@ public class NotificationController {
         notificationService.processPendingSmsNotifications();
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ApiResponse.success("Pending SMS notifications are being processed", "ACCEPTED"));
+    }
+
+    @PostMapping("/sms/test")
+    public ResponseEntity<ApiResponse<String>> sendTestSms(@Valid @RequestBody SendSmsRequestDto request) {
+        log.info("REST: Sending test SMS to {}", request.getPhoneNumber());
+
+        String result = notificationService.sendTestSms(request);
+        return ResponseEntity.ok(ApiResponse.success("Test SMS sent successfully", result));
     }
 }

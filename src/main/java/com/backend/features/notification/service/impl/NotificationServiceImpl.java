@@ -2,6 +2,7 @@ package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.dto.ReceptionFormatDto;
+import com.backend.features.notification.dto.SendSmsRequestDto;
 import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
@@ -129,6 +130,22 @@ public class NotificationServiceImpl implements NotificationService {
 
         } catch (Exception e) {
             log.error("PostgreSQL: Failed to save audit log for phone: {} | Error: {}", phoneNumber, e.getMessage());
+        }
+    }
+
+    @Override
+    public String sendTestSms(SendSmsRequestDto request) {
+        log.info("========== START: Sending test SMS ==========");
+        try {
+            String apiResponse = sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
+            logToPostgresSQL(request.getPhoneNumber(), apiResponse, request.getMessageContent());
+            log.info("✓ Test SMS sent successfully | Phone: {} | Status: {}", request.getPhoneNumber(), apiResponse);
+            log.info("========== END: Test SMS sent ==========");
+            return apiResponse;
+        } catch (Exception e) {
+            log.error("✗ Test SMS sending failed | Phone: {} | Error: {}", request.getPhoneNumber(), e.getMessage());
+            logToPostgresSQL(request.getPhoneNumber(), SMS_STATUS_FAILED, request.getMessageContent());
+            throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
         }
     }
 }
