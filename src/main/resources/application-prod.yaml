@@ -23,6 +23,9 @@ spring:
       hibernate:
         format_sql: false
 
+  flyway:
+    enabled: false
+
 # Authentication
 auth:
   username: ${AUTH_USERNAME}
@@ -32,7 +35,7 @@ auth:
 cpb:
   api:
     url: ${API_URL:http://10.18.1.47:9393}
-    encryption-key: ${ENCRYPTION_KEY:OTTCPB!!BBDUNG#LOGFH$837990}
+    encryption-key: ${ENCRYPTION_KEY}
 
 # Oracle Database Configuration
 datasource:
