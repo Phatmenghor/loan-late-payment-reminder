@@ -1,4 +1,4 @@
-package com.backend.features.notification.service;
+package com.backend.features.notification.helper;
 
 import com.backend.config.CpbApiConfig;
 import lombok.RequiredArgsConstructor;

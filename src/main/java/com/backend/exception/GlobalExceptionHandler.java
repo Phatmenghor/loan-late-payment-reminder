@@ -486,4 +486,21 @@ public class GlobalExceptionHandler {
         return xfHeader.split(",")[0];
     }
 
+    // ================================
+    // NOTIFICATION-SPECIFIC EXCEPTIONS
+    // ================================
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(
+            IllegalArgumentException ex, HttpServletRequest request) {
+        log.error("Invalid argument in notification request: {}", ex.getMessage());
+
+        Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.VALIDATION_ERROR, request);
+        errorDetails.put("field", "request");
+        errorDetails.put("type", "invalid_argument");
+
+        ApiResponse<Object> response = new ApiResponse<>("error", ex.getMessage(), errorDetails);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
 }
