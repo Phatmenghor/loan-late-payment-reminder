@@ -34,8 +34,8 @@ import java.util.Optional;
 @Transactional
 public class NotificationServiceImpl implements NotificationService {
 
-    private static final String SMS_STATUS_SUCCESS = "SVC-SUCCESS-00";
-    private static final String SMS_STATUS_FAILED = "SVC-FAILED";
+    private static final String SMS_STATUS_SUCCESS = "SUCCESS";
+    private static final String SMS_STATUS_FAILURE = "FAILURE";
 
     private final RestTemplate restTemplate;
     private final NotificationPayloadBuilder payloadBuilder;
@@ -90,7 +90,7 @@ public class NotificationServiceImpl implements NotificationService {
                     failureCount++;
                     log.error("✗ SMS sending failed | Phone: {} | Customer: {} | Error: {}",
                             record.getPhoneNumber(), record.getCustomerId(), e.getMessage());
-                    logToPostgresSQL(record, SMS_STATUS_FAILED, messageContent);
+                    logToPostgresSQL(record, SMS_STATUS_FAILURE, messageContent);
                     recordFailureLog(record, e.getMessage());
                 }
             }
@@ -122,7 +122,7 @@ public class NotificationServiceImpl implements NotificationService {
             failureLog.setFailureReason(failureReason);
             failureLog.setRetryCount(failureLog.getRetryCount() + 1);
             failureLog.setLastRetryDate(LocalDateTime.now());
-            failureLog.setStatus(SMS_STATUS_FAILED);
+            failureLog.setStatus(SMS_STATUS_FAILURE);
 
             smsFailureLogRepository.save(failureLog);
             log.info("Failure logged for phone: {} | Retry count: {}", record.getPhoneNumber(), failureLog.getRetryCount());
@@ -160,7 +160,7 @@ public class NotificationServiceImpl implements NotificationService {
             }
 
             log.warn("API: No response body received");
-            return SMS_STATUS_FAILED;
+            return SMS_STATUS_FAILURE;
 
         } catch (RestClientException e) {
             log.error("API: Request failed for phone: {}", phoneNumber, e);
@@ -219,7 +219,7 @@ public class NotificationServiceImpl implements NotificationService {
             return SMS_STATUS_SUCCESS;
         } catch (Exception e) {
             log.error("✗ Test SMS sending failed | Phone: {} | Error: {}", request.getPhoneNumber(), e.getMessage());
-            logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_FAILED, request.getMessageContent());
+            logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_FAILURE, request.getMessageContent());
             throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
         }
     }

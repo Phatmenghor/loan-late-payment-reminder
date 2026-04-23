@@ -18,7 +18,7 @@ public interface SmsFailureLogRepository extends JpaRepository<SmsFailureLog, UU
 
     List<SmsFailureLog> findByStatusAndReportDate(String status, LocalDate reportDate);
 
-    @Query("SELECT s FROM SmsFailureLog s WHERE s.reportDate = :reportDate AND s.status != 'SVC-SUCCESS-00'")
+    @Query("SELECT s FROM SmsFailureLog s WHERE s.reportDate = :reportDate AND s.status != 'SUCCESS'")
     List<SmsFailureLog> findFailedRecordsByReportDate(@Param("reportDate") LocalDate reportDate);
 
     @Query("SELECT s FROM SmsFailureLog s WHERE s.phoneNumber = :phoneNumber AND s.reportDate = :reportDate")

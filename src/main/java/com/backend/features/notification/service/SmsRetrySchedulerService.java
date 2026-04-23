@@ -20,8 +20,8 @@ import java.util.List;
 @Slf4j
 public class SmsRetrySchedulerService {
 
-    private static final String SMS_STATUS_SUCCESS = "SVC-SUCCESS-00";
-    private static final String SMS_STATUS_FAILED = "SVC-FAILED";
+    private static final String SMS_STATUS_SUCCESS = "SUCCESS";
+    private static final String SMS_STATUS_FAILURE = "FAILURE";
 
     private final SmsFailureLogRepository smsFailureLogRepository;
     private final SmsLogRepository smsLogRepository;
