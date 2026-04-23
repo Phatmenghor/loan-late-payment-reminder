@@ -1,11 +1,11 @@
--- Flyway Migration: Create Setting Table
--- V2__create_setting_table.sql
+-- Flyway Migration: Create Notification Setting Table
+-- V2__create_notification_setting_table.sql
 
-CREATE TABLE d_cbs_setting (
+CREATE TABLE loan_notification_setting (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    set_desc TEXT,
-    set_key VARCHAR(255),
-    set_value TEXT,
+    setting_key VARCHAR(255) NOT NULL UNIQUE,
+    setting_value TEXT,
+    setting_description TEXT,
     version BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
@@ -16,5 +16,5 @@ CREATE TABLE d_cbs_setting (
     deleted_by VARCHAR(255)
 );
 
-CREATE INDEX idx_setting_key ON d_cbs_setting(set_key);
-CREATE INDEX idx_setting_deleted ON d_cbs_setting(is_deleted);
+CREATE INDEX idx_setting_key ON loan_notification_setting(setting_key);
+CREATE INDEX idx_setting_deleted ON loan_notification_setting(is_deleted);

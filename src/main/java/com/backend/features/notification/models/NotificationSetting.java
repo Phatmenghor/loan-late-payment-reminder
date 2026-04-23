@@ -9,20 +9,20 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "d_cbs_setting")
+@Table(name = "loan_notification_setting", uniqueConstraints = @UniqueConstraint(columnNames = "setting_key"))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = true)
-public class Setting extends BaseUUIDEntity {
+public class NotificationSetting extends BaseUUIDEntity {
 
-    @Column(name = "set_desc", columnDefinition = "TEXT")
-    private String description;
-
-    @Column(name = "set_key")
+    @Column(name = "setting_key", nullable = false, length = 255)
     private String key;
 
-    @Column(name = "set_value")
+    @Column(name = "setting_value", columnDefinition = "TEXT")
     private String value;
+
+    @Column(name = "setting_description", columnDefinition = "TEXT")
+    private String description;
 }

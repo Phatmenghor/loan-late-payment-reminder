@@ -14,26 +14,35 @@ public class NotificationPayloadBuilder {
 
     private final SignKeyGenerator signKeyGenerator;
 
-    public TransmissionFormatDto buildPayload(String phone, String content) throws Exception {
-        String signKey = signKeyGenerator.getSignKey(phone, content);
-        return TransmissionFormatDto.builder()
-                .phone(phone)
-                .content(content)
-                .signKey(signKey)
-                .build();
+    public TransmissionFormatDto buildSmsPayload(String phoneNumber, String messageContent) {
+        try {
+            String signKey = signKeyGenerator.generateSignKey(phoneNumber, messageContent);
+            log.debug("Building SMS payload for phone: {}", phoneNumber);
+
+            return TransmissionFormatDto.builder()
+                    .phone(phoneNumber)
+                    .content(messageContent)
+                    .signKey(signKey)
+                    .build();
+        } catch (Exception e) {
+            log.error("Failed to build SMS payload for phone: {}", phoneNumber, e);
+            throw new RuntimeException("Failed to build SMS payload", e);
+        }
     }
 
-    public String buildJsonPayload(String phone, String content) throws Exception {
-        JSONObject jsonObject = new JSONObject();
-        String signKey = signKeyGenerator.getSignKey(phone, content);
+    public String buildJsonPayload(String phoneNumber, String messageContent) {
         try {
-            jsonObject.put("phone", phone);
-            jsonObject.put("content", content);
-            jsonObject.put("signKey", signKey);
+            String signKey = signKeyGenerator.generateSignKey(phoneNumber, messageContent);
+            JSONObject jsonPayload = new JSONObject();
+            jsonPayload.put("phone", phoneNumber);
+            jsonPayload.put("content", messageContent);
+            jsonPayload.put("signKey", signKey);
+
+            log.debug("JSON payload created for phone: {}", phoneNumber);
+            return jsonPayload.toString();
         } catch (JSONException e) {
-            log.error("Error creating JSON payload", e);
+            log.error("Error creating JSON payload for phone: {}", phoneNumber, e);
             throw new RuntimeException("Failed to create JSON payload", e);
         }
-        return jsonObject.toString();
     }
 }

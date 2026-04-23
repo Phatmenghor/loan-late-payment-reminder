@@ -1,67 +1,74 @@
 package com.backend.features.notification.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
-import org.json.JSONObject;
-import org.json.JSONException;
+import org.springframework.web.client.RestTemplate;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class SignKeyGenerator {
 
-    @Value("${cpb.api.url}")
+    private final RestTemplate restTemplate;
+
+    @Value("${cpb.api.url:http://localhost:8080}")
     private String apiUrl;
 
-    @Autowired
-    private RestTemplate restTemplate;
-
-    public String getSignKey(String phone, String content) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
+    public String generateSignKey(String phone, String content) {
         try {
-            String json = createSignKeyPayload(phone, content);
-            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl + "/GenKey", json, String.class);
-            return response.getBody();
+            String payload = createPayload(phone, content);
+            log.debug("Generating sign key for phone: {}", phone);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    apiUrl + "/GenKey",
+                    payload,
+                    String.class
+            );
+
+            String signKey = response.getBody();
+            log.info("Sign key generated successfully for phone: {}", phone);
+            return signKey;
         } catch (RestClientException e) {
-            log.error("Failed to generate sign key from API", e);
+            log.error("Failed to generate sign key from API for phone: {}", phone, e);
             return null;
         }
     }
 
-    private String createSignKeyPayload(String phone, String content) {
+    public String hashWithSha256(String input) {
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            messageDigest.update(input.getBytes());
+            byte[] hashBytes = messageDigest.digest();
+            return convertBytesToHex(hashBytes);
+        } catch (NoSuchAlgorithmException e) {
+            log.error("SHA-256 algorithm not available", e);
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
+    }
+
+    private String createPayload(String phone, String content) {
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("phone", phone);
             jsonObject.put("content", content);
+            return jsonObject.toString();
         } catch (JSONException e) {
-            log.error("Error creating JSON payload for sign key", e);
-        }
-        return jsonObject.toString();
-    }
-
-    public String getSha256(String base) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(base.getBytes());
-            return bytesToHex(md.digest());
-        } catch (NoSuchAlgorithmException ex) {
-            log.error("SHA-256 algorithm not available", ex);
-            throw new RuntimeException("SHA-256 algorithm not available", ex);
+            log.error("Error creating JSON payload", e);
+            throw new RuntimeException("Failed to create JSON payload", e);
         }
     }
 
-    private String bytesToHex(byte[] bytes) {
+    private String convertBytesToHex(byte[] bytes) {
         StringBuilder result = new StringBuilder();
         for (byte b : bytes) {
             result.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
