@@ -234,25 +234,20 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             LocalDate reportDate = LocalDate.now().minusDays(1);
 
-            // STEP 1: Check if all SMS already sent successfully (no failures remaining)
-            if (isProcessingComplete(reportDate)) {
-                log.info("✓ Processing already complete at {}", timeLabel);
-                log.info("  All SMS sent successfully - no failures remaining");
-                log.info("  Skipping processing to save resources");
-                return;
-            }
-
-            // STEP 2: Process new records from view (if COB finished and view has data)
+            // STEP 1: Process new records from view (if COB finished)
+            // - If view is empty → COB not done yet, return
+            // - If view has data → COB is done, process all records
             log.info("STEP 1: Processing new records from view ({})", timeLabel);
             processPendingSmsNotifications();
 
-            // STEP 3: Retry failed records
+            // STEP 2: Retry failed records from SmsFailureLog
             log.info("STEP 2: Retrying failed records ({})", timeLabel);
             retryFailedRecords(reportDate);
 
-            // STEP 4: Check completion status after retry
+            // STEP 3: Check completion status - if all sent, stop processing
             if (isProcessingComplete(reportDate)) {
                 log.info("✓ All SMS processing complete at {}", timeLabel);
+                log.info("  No more failures - skipping future attempts to save resources");
             }
 
         } catch (Exception e) {
