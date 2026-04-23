@@ -1,10 +1,11 @@
 package com.backend.features.notification.helper;
 
+import com.backend.features.notification.dto.LoanLateReminderDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.sql.*;
-import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,52 +13,35 @@ import java.util.List;
 @Slf4j
 public class OracleHelper {
 
-    public List<String> selectPendingSmsPhoneNumbers() {
-        List<String> phoneNumbers = new ArrayList<>();
-        String query = "SELECT Tell FROM D_Cbs_Sms_Log_Test WHERE Sms_Status != ?";
+    public List<LoanLateReminderDto> selectLoanLateReminderRecords(LocalDate reportDate) {
+        List<LoanLateReminderDto> records = new ArrayList<>();
+        String query = "SELECT REPORTDATE, CUSTOMERID, MBAPP_PHONE, ARRANGEMENT_ID, DAYDUE FROM STG.VIEW_LOAN_LATE_REMINDER WHERE REPORTDATE = ?";
 
         try (Connection con = OracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
 
-            ps.setString(1, "SVC-SUCCESS-00");
+            ps.setDate(1, Date.valueOf(reportDate));
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                String phone = rs.getString("Tell");
-                phoneNumbers.add(phone);
+                LoanLateReminderDto record = LoanLateReminderDto.builder()
+                        .reportDate(rs.getDate("REPORTDATE").toLocalDate())
+                        .customerId(rs.getString("CUSTOMERID"))
+                        .phoneNumber(rs.getString("MBAPP_PHONE"))
+                        .arrangementId(rs.getString("ARRANGEMENT_ID"))
+                        .dayDue(rs.getInt("DAYDUE"))
+                        .build();
+                records.add(record);
             }
 
-            log.info("Oracle: Selected {} pending SMS to process", phoneNumbers.size());
-            return phoneNumbers;
+            log.info("Oracle: Selected {} loan late reminder records for date: {}", records.size(), reportDate);
+            return records;
 
         } catch (SQLException e) {
-            log.error("Oracle: Error fetching pending SMS from database: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to select pending SMS from Oracle", e);
-        }
-    }
-
-    public void updateSmsStatus(String phoneNumber, String status) {
-        String query = "UPDATE D_Cbs_Sms_Log_Test SET Sms_Status = ?, Sms_Log_Dt = ? WHERE Tell = ?";
-
-        try (Connection con = OracleConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement(query)) {
-
-            ps.setString(1, status);
-            ps.setTimestamp(2, Timestamp.from(Instant.now()));
-            ps.setString(3, phoneNumber);
-
-            int rowsAffected = ps.executeUpdate();
-
-            if (rowsAffected > 0) {
-                log.info("Oracle: Successfully updated SMS status for phone: {} | Status: {}", phoneNumber, status);
-            } else {
-                log.warn("Oracle: No records updated for phone: {}", phoneNumber);
-            }
-
-        } catch (SQLException e) {
-            log.error("Oracle: Failed to update SMS status for phone: {} | Error: {}", phoneNumber, e.getMessage(), e);
-            throw new RuntimeException("Failed to update SMS status in Oracle", e);
+            log.error("Oracle: Error fetching loan late reminder records for date: {} | Error: {}", reportDate, e.getMessage(), e);
+            throw new RuntimeException("Failed to select loan late reminder records from Oracle", e);
         }
     }
 }
+
 

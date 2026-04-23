@@ -1,12 +1,15 @@
 package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
+import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendSmsRequestDto;
 import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
+import com.backend.features.notification.models.SmsFailureLog;
 import com.backend.features.notification.models.SmsLog;
+import com.backend.features.notification.repository.SmsFailureLogRepository;
 import com.backend.features.notification.repository.SmsLogRepository;
 import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,59 +42,94 @@ public class NotificationServiceImpl implements NotificationService {
     private final CpbApiConfig cpbApiConfig;
     private final OracleHelper oracleHelper;
     private final SmsLogRepository smsLogRepository;
+    private final SmsFailureLogRepository smsFailureLogRepository;
     private final CpbHelper cpbHelper;
 
     @Override
     public void processPendingSmsNotifications() {
-        log.info("========== START: Processing pending SMS notifications from Oracle ==========");
+        log.info("========== START: Processing SMS notifications from STG.VIEW_LOAN_LATE_REMINDER ==========");
 
         try {
+            LocalDate reportDate = LocalDate.now().minusDays(1);
             String messageContent = cpbHelper.getContentDescription();
-            log.info("SMS message content loaded from D_CBS_SETTING: {}", messageContent);
+            log.info("SMS message content loaded: {}", messageContent);
 
-            List<String> phoneNumbers = oracleHelper.selectPendingSmsPhoneNumbers();
+            List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords(reportDate);
 
-            if (phoneNumbers.isEmpty()) {
-                log.info("✓ No pending SMS notifications found");
-                log.info("========== END: Processing pending SMS notifications ==========");
+            if (records.isEmpty()) {
+                log.info("✓ No loan late reminder records found for date: {}", reportDate);
+                log.info("========== END: Processing SMS notifications ==========");
                 return;
             }
 
-            log.info("✓ Found {} pending SMS notifications to process", phoneNumbers.size());
+            log.info("✓ Found {} loan late reminder records to process for date: {}", records.size(), reportDate);
 
             int successCount = 0;
             int failureCount = 0;
 
-            for (String phoneNumber : phoneNumbers) {
+            for (LoanLateReminderDto record : records) {
                 try {
-                    log.info("========== START: Processing SMS for phone: {} ==========", phoneNumber);
+                    log.info("========== START: Processing SMS for phone: {} | Customer: {} ==========",
+                            record.getPhoneNumber(), record.getCustomerId());
 
-                    sendSmsToApi(phoneNumber, messageContent);
-                    oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_SUCCESS);
+                    sendSmsToApi(record.getPhoneNumber(), messageContent);
                     successCount++;
 
-                    logToPostgresSQL(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
-                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, SMS_STATUS_SUCCESS);
-                    log.info("========== END: SMS processing completed for phone: {} ==========", phoneNumber);
+                    logToPostgresSQL(record.getPhoneNumber(), SMS_STATUS_SUCCESS, messageContent);
+                    log.info("✓ SMS sent successfully | Phone: {} | Status: {}", record.getPhoneNumber(), SMS_STATUS_SUCCESS);
+                    log.info("========== END: SMS processing completed for phone: {} ==========", record.getPhoneNumber());
 
                 } catch (Exception e) {
                     failureCount++;
-                    log.error("✗ SMS sending failed | Phone: {} | Error: {}", phoneNumber, e.getMessage());
-                    logToPostgresSQL(phoneNumber, SMS_STATUS_FAILED, messageContent);
-                    try {
-                        oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
-                    } catch (Exception ex) {
-                        log.error("✗ Failed to update Oracle status for phone: {} | Error: {}", phoneNumber, ex.getMessage());
-                    }
+                    log.error("✗ SMS sending failed | Phone: {} | Customer: {} | Error: {}",
+                            record.getPhoneNumber(), record.getCustomerId(), e.getMessage());
+                    logToPostgresSQL(record.getPhoneNumber(), SMS_STATUS_FAILED, messageContent);
+                    recordFailureLog(record, e.getMessage());
                 }
             }
 
             log.info("========== RESULT: Success: {}, Failed: {} ==========", successCount, failureCount);
-            log.info("========== END: Processing pending SMS notifications ==========");
+            log.info("========== END: Processing SMS notifications ==========");
 
         } catch (Exception e) {
-            log.error("✗ Exception in Pending SMS Processing: {} | Cause: {}", e.getMessage(), e.getCause(), e);
+            log.error("✗ Exception in SMS Processing: {} | Cause: {}", e.getMessage(), e.getCause(), e);
         }
+    }
+
+    private void recordFailureLog(LoanLateReminderDto record, String failureReason) {
+        try {
+            LocalDate reportDate = record.getReportDate() != null ? record.getReportDate() : LocalDate.now().minusDays(1);
+
+            Optional<SmsFailureLog> existingRecord = smsFailureLogRepository
+                    .findByPhoneAndDate(record.getPhoneNumber(), reportDate);
+
+            SmsFailureLog failureLog = existingRecord.orElseGet(() ->
+                    SmsFailureLog.builder()
+                            .phoneNumber(record.getPhoneNumber())
+                            .customerId(record.getCustomerId())
+                            .reportDate(reportDate)
+                            .arrangementId(record.getArrangementId())
+                            .retryCount(0)
+                            .createdDate(LocalDateTime.now())
+                            .build());
+
+            failureLog.setFailureReason(failureReason);
+            failureLog.setRetryCount(failureLog.getRetryCount() + 1);
+            failureLog.setLastRetryDate(LocalDateTime.now());
+            failureLog.setStatus(SMS_STATUS_FAILED);
+            failureLog.setUpdatedDate(LocalDateTime.now());
+
+            smsFailureLogRepository.save(failureLog);
+            log.info("Failure logged for phone: {} | Retry count: {}", record.getPhoneNumber(), failureLog.getRetryCount());
+
+        } catch (Exception e) {
+            log.error("Failed to record failure log for phone: {}", record.getPhoneNumber(), e);
+        }
+    }
+
+    public void sendSmsDirectly(String phoneNumber, String messageContent) throws RestClientException {
+        sendSmsToApi(phoneNumber, messageContent);
+        logToPostgresSQL(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
     }
 
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
