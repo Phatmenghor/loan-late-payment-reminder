@@ -12,7 +12,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 @Component
-@Lazy
 @Slf4j
 public class OracleConnection {
 
