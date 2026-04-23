@@ -1,31 +1,16 @@
 # ============================================================
-# application.yaml  –  BASE CONFIG (shared across all profiles)
+# application.yaml  –  SHARED BASE CONFIG (all profiles)
 # ============================================================
-# To switch environment:
-#   profiles.active: local   →  localhost DB, debug logging
-#   profiles.active: dev     →  dev server DB
-#   profiles.active: prod    →  production DB, minimal logging
+# Profile-specific files (application-{profile}.yaml) override
+# these settings. To change profile: active: local | dev | prod
 # ============================================================
+
 spring:
   application:
     name: sms-loan-late
   profiles:
-    active: prod # ← change to "local" or "dev" or "prod" as needed
+    active: prod
 
-  # PostgreSQL (Primary datasource - auto-configured by Spring Boot)
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-  # JPA  – common settings (ddl-auto overridden per profile)
   jpa:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -34,26 +19,21 @@ spring:
         jdbc:
           batch_size: 50
 
-  # Cache
   cache:
     type: caffeine
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=1h
 
-  # Flyway
   flyway:
     enabled: false
 
-  # SQL initialization
   sql:
     init:
       mode: never
 
-# Server
 server:
   port: ${SERVER_PORT:9393}
 
-# Swagger / OpenAPI
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -62,7 +42,6 @@ springdoc:
     path: /v3/api-docs
     enabled: true
 
-# Application
 app:
   name: "Loan Late Payment Reminder"
   version: "1.0.0"
