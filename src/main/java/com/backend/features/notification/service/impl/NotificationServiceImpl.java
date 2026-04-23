@@ -4,6 +4,8 @@ import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
+import com.backend.features.notification.models.SmsLog;
+import com.backend.features.notification.repository.SmsLogRepository;
 import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,6 +31,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationPayloadBuilder payloadBuilder;
     private final CpbApiConfig cpbApiConfig;
     private final OracleHelper oracleHelper;
+    private final SmsLogRepository smsLogRepository;
 
     @Override
     public void processPendingSmsNotifications() {
@@ -55,12 +59,14 @@ public class NotificationServiceImpl implements NotificationService {
                     oracleHelper.updateSmsStatus(phoneNumber, apiResponse);
                     successCount++;
 
+                    logToPostgresSQL(phoneNumber, apiResponse, "Loan payment reminder");
                     log.info("✓ SMS sent successfully | Phone: {} | Status: {}", phoneNumber, apiResponse);
                     log.info("========== END: SMS processing completed for phone: {} ==========", phoneNumber);
 
                 } catch (Exception e) {
                     failureCount++;
                     log.error("✗ SMS sending failed | Phone: {} | Error: {}", phoneNumber, e.getMessage());
+                    logToPostgresSQL(phoneNumber, SMS_STATUS_FAILED, "Loan payment reminder");
                     try {
                         oracleHelper.updateSmsStatus(phoneNumber, SMS_STATUS_FAILED);
                     } catch (Exception ex) {
@@ -103,6 +109,23 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (RestClientException e) {
             log.error("API: Request failed for phone: {}", phoneNumber, e);
             throw e;
+        }
+    }
+
+    private void logToPostgresSQL(String phoneNumber, String status, String messageContent) {
+        try {
+            SmsLog smsLog = SmsLog.builder()
+                    .phoneNumber(phoneNumber)
+                    .messageContent(messageContent)
+                    .smsStatus(status)
+                    .smsLogDate(LocalDateTime.now())
+                    .build();
+
+            smsLogRepository.save(smsLog);
+            log.debug("PostgreSQL: Audit log created for phone: {} | Status: {}", phoneNumber, status);
+
+        } catch (Exception e) {
+            log.error("PostgreSQL: Failed to create audit log for phone: {} | Error: {}", phoneNumber, e.getMessage());
         }
     }
 }
