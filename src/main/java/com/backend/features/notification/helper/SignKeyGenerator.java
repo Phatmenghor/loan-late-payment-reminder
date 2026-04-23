@@ -24,7 +24,7 @@ public class SignKeyGenerator {
     public String generateSignKey(String phone, String content) {
         try {
             String payload = createPayload(phone, content);
-            log.debug("Generating sign key for phone: {} from API: {}", phone, cpbApiConfig.getUrl());
+            log.info("Generating sign key for phone: {} from API: {}", phone, cpbApiConfig.getUrl());
 
             String url = cpbApiConfig.getUrl() + "/GenKey";
             ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
