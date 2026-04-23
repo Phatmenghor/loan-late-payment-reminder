@@ -26,21 +26,13 @@ public class SignKeyGenerator {
 
     public String generateSignKey(String phone, String content) {
         try {
-            String payload = createPayload(phone, content);
-            log.info("Generating sign key for phone: {} from API: {}", phone, cpbApiConfig.getUrl());
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> request = new HttpEntity<>(payload, headers);
-
-            String url = cpbApiConfig.getUrl() + "/GenKey";
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-
-            String signKey = response.getBody();
+            String encryptionKey = cpbApiConfig.getEncryptionKey();
+            String signKeyInput = encryptionKey + phone + encryptionKey + content + encryptionKey;
+            String signKey = hashWithSha256(signKeyInput);
             log.info("Sign key generated successfully for phone: {}", phone);
             return signKey;
-        } catch (RestClientException e) {
-            log.error("Failed to generate sign key from API for phone: {}", phone, e);
+        } catch (Exception e) {
+            log.error("Failed to generate sign key for phone: {}", phone, e);
             return null;
         }
     }
