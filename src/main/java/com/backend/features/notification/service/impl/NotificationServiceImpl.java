@@ -47,22 +47,21 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void processPendingSmsNotifications() {
-        log.info("========== START: Processing SMS notifications from STG.VIEW_LOAN_LATE_REMINDER ==========");
+        log.info("========== START: Processing SMS notifications ==========");
 
         try {
-            LocalDate reportDate = LocalDate.now().minusDays(1);
             String messageContent = cpbHelper.getContentDescription();
             log.info("SMS message content loaded: {}", messageContent);
 
-            List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords(reportDate);
+            List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
 
             if (records.isEmpty()) {
-                log.info("✓ No loan late reminder records found for date: {}", reportDate);
+                log.info("✓ No loan late reminder records found");
                 log.info("========== END: Processing SMS notifications ==========");
                 return;
             }
 
-            log.info("✓ Found {} loan late reminder records to process for date: {}", records.size(), reportDate);
+            log.info("✓ Found {} loan late reminder records to process", records.size());
 
             int successCount = 0;
             int failureCount = 0;
