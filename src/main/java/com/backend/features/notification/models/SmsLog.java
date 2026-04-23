@@ -1,7 +1,10 @@
 package com.backend.features.notification.models;
 
 import com.backend.shared.domain.BaseUUIDEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +14,15 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "loan_sms_log")
+@Table(
+    name = "loan_sms_log",
+    indexes = {
+        @Index(name = "idx_phone_number", columnList = "phone_number"),
+        @Index(name = "idx_sms_status", columnList = "sms_status"),
+        @Index(name = "idx_sms_log_date", columnList = "sms_log_date"),
+        @Index(name = "idx_is_deleted", columnList = "is_deleted")
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,4 +41,12 @@ public class SmsLog extends BaseUUIDEntity {
 
     @Column(name = "message_content", columnDefinition = "TEXT")
     private String messageContent;
+
+    @Override
+    public String toString() {
+        return String.format(
+            "SmsLog(id=%s, phoneNumber=%s, smsStatus=%s, smsLogDate=%s)",
+            getId(), phoneNumber, smsStatus, smsLogDate
+        );
+    }
 }

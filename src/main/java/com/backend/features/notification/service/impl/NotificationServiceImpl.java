@@ -8,6 +8,7 @@ import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.mapper.SmsLogMapper;
 import com.backend.features.notification.models.SmsLog;
 import com.backend.features.notification.repository.SmsLogRepository;
+import com.backend.features.notification.service.NotificationLogger;
 import com.backend.features.notification.service.NotificationPayloadBuilder;
 import com.backend.features.notification.service.NotificationService;
 import com.backend.features.notification.service.SettingService;
@@ -39,22 +40,23 @@ public class NotificationServiceImpl implements NotificationService {
     private final SmsLogRepository smsLogRepository;
     private final SmsLogMapper smsLogMapper;
     private final CpbApiConfig cpbApiConfig;
+    private final NotificationLogger notificationLogger;
 
     @Override
     public void processPendingSmsNotifications() {
-        log.info("========== START: Processing pending SMS notifications ==========");
+        notificationLogger.logProcessStart();
 
         try {
             // Step 1: SELECT all pending SMS logs from database
             List<SmsLog> pendingSmsList = selectPendingSmsList();
 
             if (pendingSmsList.isEmpty()) {
-                log.info("✓ No pending SMS notifications found");
-                log.info("========== END: Processing pending SMS notifications ==========");
+                notificationLogger.logNoPendingSms();
+                notificationLogger.logProcessEnd(0, 0);
                 return;
             }
 
-            log.info("✓ Found {} pending SMS notifications to process", pendingSmsList.size());
+            notificationLogger.logPendingSmsFetched(pendingSmsList.size());
 
             // Step 2: Loop through each pending SMS
             int successCount = 0;
@@ -62,29 +64,30 @@ public class NotificationServiceImpl implements NotificationService {
 
             for (SmsLog smsLog : pendingSmsList) {
                 try {
+                    notificationLogger.logSmsProcessStart(smsLog.getPhoneNumber());
+
                     // Step 3: Send SMS to API
                     String apiResponse = sendSmsToApi(smsLog.getPhoneNumber(), smsLog.getMessageContent());
 
                     // Step 4: UPDATE SMS status in database
                     updateSmsLogStatus(smsLog, apiResponse);
                     successCount++;
-                    log.info("✓ SMS processed successfully for phone: {} | Status: {}",
-                            smsLog.getPhoneNumber(), apiResponse);
+                    notificationLogger.logSmsSuccess(smsLog.getPhoneNumber(), apiResponse);
+                    notificationLogger.logSmsProcessEnd(smsLog.getPhoneNumber());
 
                 } catch (Exception e) {
                     failureCount++;
+                    notificationLogger.logSmsFailure(smsLog.getPhoneNumber(), e.getMessage());
                     // UPDATE SMS status as FAILED in database
                     updateSmsLogStatus(smsLog, SMS_STATUS_FAILED);
-                    log.error("✗ Failed to send SMS to phone: {} | Error: {}",
-                            smsLog.getPhoneNumber(), e.getMessage());
+                    notificationLogger.logException("SMS Processing", e);
                 }
             }
 
-            log.info("========== RESULT: Success: {}, Failed: {} ==========", successCount, failureCount);
-            log.info("========== END: Processing pending SMS notifications ==========");
+            notificationLogger.logProcessEnd(successCount, failureCount);
 
         } catch (Exception e) {
-            log.error("✗ CRITICAL ERROR: Unexpected error processing pending SMS notifications", e);
+            notificationLogger.logException("Pending SMS Processing", e);
         }
     }
 
