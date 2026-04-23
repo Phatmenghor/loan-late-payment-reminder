@@ -22,7 +22,7 @@ public class CpbHelper {
 
             if (rs.next()) {
                 description = rs.getString("SET_DESC");
-                log.debug("SMS message content fetched from Oracle: {}", description);
+                log.info("SMS message content fetched from Oracle D_CBS_SETTING: {}", description);
             }
 
             return description.isEmpty() ? "Loan payment reminder" : description;

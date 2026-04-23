@@ -21,10 +21,9 @@ public class NotificationPayloadBuilder {
             jsonPayload.put("content", messageContent);
             jsonPayload.put("signKey", signKey);
 
-            log.debug("JSON payload created for phone: {}", phoneNumber);
             return jsonPayload.toString();
         } catch (JSONException e) {
-            log.error("Error creating JSON payload for phone: {}", phoneNumber, e);
+            log.error("Payload: Error creating JSON payload for phone: {}", phoneNumber, e);
             throw new RuntimeException("Failed to create JSON payload", e);
         }
     }

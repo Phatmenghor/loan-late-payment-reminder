@@ -25,14 +25,13 @@ public class OracleHelper {
             while (rs.next()) {
                 String phone = rs.getString("Tell");
                 phoneNumbers.add(phone);
-                log.debug("Found pending SMS for phone: {}", phone);
             }
 
-            log.info("Selected {} pending SMS from Oracle", phoneNumbers.size());
+            log.info("Oracle: Selected {} pending SMS to process", phoneNumbers.size());
             return phoneNumbers;
 
         } catch (SQLException e) {
-            log.error("Error fetching phone numbers from Oracle database: {}", e.getMessage(), e);
+            log.error("Oracle: Error fetching pending SMS from database: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to select pending SMS from Oracle", e);
         }
     }

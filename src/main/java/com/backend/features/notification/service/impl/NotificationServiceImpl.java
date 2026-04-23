@@ -91,10 +91,8 @@ public class NotificationServiceImpl implements NotificationService {
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
-            log.debug("API: Preparing SMS payload for phone: {}", phoneNumber);
-
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
-            log.info("API: Sending request to: {}", apiUrl);
+            log.info("API: Sending SMS to {}", apiUrl);
 
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
                     apiUrl,
@@ -104,7 +102,7 @@ public class NotificationServiceImpl implements NotificationService {
 
             if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
                 String responseStatus = apiResponse.getBody().getDesc();
-                log.info("API: Received response status: {}", responseStatus);
+                log.info("API: Response status received: {}", responseStatus);
                 return responseStatus;
             }
 
@@ -127,10 +125,10 @@ public class NotificationServiceImpl implements NotificationService {
                     .build();
 
             smsLogRepository.save(smsLog);
-            log.debug("PostgreSQL: Audit log created for phone: {} | Status: {}", phoneNumber, status);
+            log.info("PostgreSQL: Audit log saved for phone: {} | Status: {}", phoneNumber, status);
 
         } catch (Exception e) {
-            log.error("PostgreSQL: Failed to create audit log for phone: {} | Error: {}", phoneNumber, e.getMessage());
+            log.error("PostgreSQL: Failed to save audit log for phone: {} | Error: {}", phoneNumber, e.getMessage());
         }
     }
 }
