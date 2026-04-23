@@ -9,7 +9,7 @@ spring:
   application:
     name: sms-loan-late
   profiles:
-    active: prod
+    active: dev
 
   jpa:
     open-in-view: false

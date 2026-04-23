@@ -1,21 +1,30 @@
-# Development Configuration (overrides base application.yaml)
-
+# Production Configuration
 server:
   port: ${SERVER_PORT:9393}
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:host.docker.internal}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
+    url: jdbc:postgresql://${DB_HOST:192.168.103.106}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:123cp!@#}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 15
-      minimum-idle: 3
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: false
 
 # Authentication
 auth:
@@ -35,12 +44,14 @@ datasource:
     username: ${ORACLE_USERNAME:dwh}
     password: ${ORACLE_PASSWORD:Bnk$$444}
     driver-class-name: oracle.jdbc.driver.OracleDriver
-    maximum-pool-size: 5
-    minimum-idle: 2
+    maximum-pool-size: 10
+    minimum-idle: 3
+    connection-timeout: 20000
+    idle-timeout: 300000
 
 logging:
   level:
-    root: INFO
+    root: WARN
     com.backend: INFO
     org.springframework: WARN
     org.hibernate: WARN
