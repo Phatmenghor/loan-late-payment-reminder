@@ -301,16 +301,6 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("END: Hourly SMS processing");
     }
 
-    private String getNextHourlyTime(String currentTime) {
-        try {
-            int currentHour = Integer.parseInt(currentTime.split(":")[0]);
-            int nextHour = (currentHour + 1) % 24;
-            return String.format("%02d:00", nextHour);
-        } catch (Exception e) {
-            return "Next Hour";
-        }
-    }
-
     private boolean isProcessingComplete(LocalDate reportDate) {
         try {
             log.info("Checking completion status for {}", reportDate);
@@ -330,64 +320,4 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private void retryFailedRecords(LocalDate reportDate) {
-        try {
-            String messageContent = null;
-
-            try {
-                messageContent = getMessageContent();
-            } catch (Exception e) {
-                log.warn("Could not load message content: {}", e.getMessage());
-                messageContent = "";
-            }
-
-            List<SmsFailureLog> failedRecords = smsFailureLogRepository.findFailedRecordsByReportDate(reportDate);
-
-            if (failedRecords.isEmpty()) {
-                log.info("✓ No failed records to retry for date: {}", reportDate);
-                return;
-            }
-
-            log.info("✓ Found {} failed SMS records to retry for date: {}", failedRecords.size(), reportDate);
-
-            int retrySuccessCount = 0;
-            int retryFailureCount = 0;
-
-            for (SmsFailureLog failureLog : failedRecords) {
-                try {
-                    log.info("  Retrying SMS for phone: {} | Retry count: {} | Reason: {}",
-                            failureLog.getPhoneNumber(),
-                            failureLog.getRetryCount(),
-                            failureLog.getFailureReason());
-
-                    sendSmsDirectly(failureLog.getPhoneNumber(), messageContent);
-                    retrySuccessCount++;
-
-                    failureLog.setStatus(SMS_STATUS_SUCCESS);
-                    failureLog.setLastRetryDate(LocalDateTime.now());
-                    smsFailureLogRepository.save(failureLog);
-
-                    log.info("  ✓ Retry successful for phone: {}", failureLog.getPhoneNumber());
-
-                } catch (Exception e) {
-                    retryFailureCount++;
-                    log.error("  ✗ Retry failed for phone: {} | Error: {}",
-                            failureLog.getPhoneNumber(), e.getMessage());
-
-                    failureLog.setRetryCount(failureLog.getRetryCount() + 1);
-                    failureLog.setFailureReason(e.getMessage());
-                    failureLog.setLastRetryDate(LocalDateTime.now());
-                    failureLog.setStatus(SMS_STATUS_FAILURE);
-                    smsFailureLogRepository.save(failureLog);
-                }
-            }
-
-            log.info("========== RETRY SUMMARY: Success: {}, Failed: {} ==========",
-                    retrySuccessCount, retryFailureCount);
-
-        } catch (Exception e) {
-            log.error("✗ Exception in SMS Retry Processing: {} | Cause: {}",
-                    e.getMessage(), e.getCause(), e);
-        }
-    }
 }
