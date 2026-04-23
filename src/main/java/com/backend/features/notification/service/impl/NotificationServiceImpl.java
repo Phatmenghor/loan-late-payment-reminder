@@ -1,5 +1,6 @@
 package com.backend.features.notification.service.impl;
 
+import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.dto.request.SendSmsRequest;
 import com.backend.features.notification.dto.response.SendSmsResponse;
 import com.backend.features.notification.dto.response.SmsLogResponse;
@@ -12,7 +13,6 @@ import com.backend.features.notification.service.NotificationService;
 import com.backend.features.notification.service.SettingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,9 +38,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final SettingService settingService;
     private final SmsLogRepository smsLogRepository;
     private final SmsLogMapper smsLogMapper;
-
-    @Value("${cpb.api.url:http://localhost:8080}")
-    private String apiUrl;
+    private final CpbApiConfig cpbApiConfig;
 
     @Override
     public void processPendingSmsNotifications() {
@@ -115,8 +113,11 @@ public class NotificationServiceImpl implements NotificationService {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
             log.debug("Sending SMS payload to API for phone: {}", phoneNumber);
 
+            String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
+            log.debug("API Endpoint: {}", apiUrl);
+
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
-                    apiUrl + "/SendOTT",
+                    apiUrl,
                     jsonPayload,
                     ReceptionFormatDto.class
             );

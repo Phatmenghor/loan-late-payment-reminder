@@ -1,11 +1,10 @@
 package com.backend.features.notification.service;
 
+import com.backend.config.CpbApiConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -20,20 +19,15 @@ import java.security.NoSuchAlgorithmException;
 public class SignKeyGenerator {
 
     private final RestTemplate restTemplate;
-
-    @Value("${cpb.api.url:http://localhost:8080}")
-    private String apiUrl;
+    private final CpbApiConfig cpbApiConfig;
 
     public String generateSignKey(String phone, String content) {
         try {
             String payload = createPayload(phone, content);
-            log.debug("Generating sign key for phone: {}", phone);
+            log.debug("Generating sign key for phone: {} from API: {}", phone, cpbApiConfig.getUrl());
 
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    apiUrl + "/GenKey",
-                    payload,
-                    String.class
-            );
+            String url = cpbApiConfig.getUrl() + "/GenKey";
+            ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
 
             String signKey = response.getBody();
             log.info("Sign key generated successfully for phone: {}", phone);

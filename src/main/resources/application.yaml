@@ -63,3 +63,20 @@ telegram:
   bot-token: "7964805821:AAGX_OucZ88VmJxhcDPC3fAPDHfaaP-nZOE"
   group-id: "-5114358941"
   enabled: true
+
+# Authentication
+auth:
+  username: "admin"
+  password: "admin123"
+
+# CPB API Configuration
+cpb:
+  api:
+    url: "http://localhost:8080"
+
+# Notification Configuration
+notification:
+  sms:
+    enabled: true
+    api-endpoint: "/SendOTT"
+    timeout-seconds: 30
