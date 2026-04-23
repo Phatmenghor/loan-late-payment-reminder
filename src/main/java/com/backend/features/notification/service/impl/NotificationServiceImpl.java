@@ -117,14 +117,12 @@ public class NotificationServiceImpl implements NotificationService {
                             .reportDate(reportDate)
                             .arrangementId(record.getArrangementId())
                             .retryCount(0)
-                            .createdDate(LocalDateTime.now())
                             .build());
 
             failureLog.setFailureReason(failureReason);
             failureLog.setRetryCount(failureLog.getRetryCount() + 1);
             failureLog.setLastRetryDate(LocalDateTime.now());
             failureLog.setStatus(SMS_STATUS_FAILED);
-            failureLog.setUpdatedDate(LocalDateTime.now());
 
             smsFailureLogRepository.save(failureLog);
             log.info("Failure logged for phone: {} | Retry count: {}", record.getPhoneNumber(), failureLog.getRetryCount());

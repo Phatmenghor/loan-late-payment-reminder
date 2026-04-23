@@ -9,9 +9,10 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface SmsFailureLogRepository extends JpaRepository<SmsFailureLog, String> {
+public interface SmsFailureLogRepository extends JpaRepository<SmsFailureLog, UUID> {
 
     Optional<SmsFailureLog> findByPhoneNumberAndReportDate(String phoneNumber, LocalDate reportDate);
 

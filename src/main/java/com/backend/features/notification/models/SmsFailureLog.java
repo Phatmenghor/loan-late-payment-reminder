@@ -1,25 +1,25 @@
 package com.backend.features.notification.models;
 
+import com.backend.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sms_failure_log")
+@Table(name = "sms_failure_log", indexes = {
+        @Index(name = "idx_phone_number", columnList = "phone_number"),
+        @Index(name = "idx_status", columnList = "status"),
+        @Index(name = "idx_report_date", columnList = "report_date"),
+        @Index(name = "idx_is_deleted", columnList = "is_deleted")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SmsFailureLog {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+@EqualsAndHashCode(callSuper = true)
+public class SmsFailureLog extends BaseUUIDEntity {
 
     @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
@@ -36,7 +36,8 @@ public class SmsFailureLog {
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
 
-    @Column(name = "retry_count")
+    @Column(name = "retry_count", nullable = false)
+    @Builder.Default
     private Integer retryCount = 0;
 
     @Column(name = "last_retry_date")
@@ -44,10 +45,4 @@ public class SmsFailureLog {
 
     @Column(name = "status")
     private String status;
-
-    @Column(name = "created_date")
-    private LocalDateTime createdDate;
-
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
 }
