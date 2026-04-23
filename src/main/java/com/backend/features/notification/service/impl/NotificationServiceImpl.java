@@ -36,7 +36,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     private static final String SMS_STATUS_SUCCESS = "SUCCESS";
     private static final String SMS_STATUS_FAILURE = "FAILURE";
-    private static final int PROCESSING_COMPLETE_THRESHOLD_MINUTES = 30;
 
     private final RestTemplate restTemplate;
     private final NotificationPayloadBuilder payloadBuilder;
@@ -45,9 +44,6 @@ public class NotificationServiceImpl implements NotificationService {
     private final SmsLogRepository smsLogRepository;
     private final SmsFailureLogRepository smsFailureLogRepository;
     private final CpbHelper cpbHelper;
-
-    // Track when processing last happened (for this day)
-    private LocalDateTime lastProcessingTime = null;
 
     @Override
     public void processPendingSmsNotifications() {
@@ -60,7 +56,7 @@ public class NotificationServiceImpl implements NotificationService {
             List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
 
             if (records.isEmpty()) {
-                log.info("✓ No loan late reminder records found (view may be empty if COB not complete)");
+                log.info("⊘ View is empty - COB not yet finished, no records to process");
                 log.info("========== END: Processing SMS notifications ==========");
                 return;
             }
@@ -238,7 +234,7 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             LocalDate reportDate = LocalDate.now().minusDays(1);
 
-            // STEP 1: Check if processing is already complete
+            // STEP 1: Check if all SMS already sent successfully (no failures remaining)
             if (isProcessingComplete(reportDate)) {
                 log.info("✓ Processing already complete at {}", timeLabel);
                 log.info("  All SMS sent successfully - no failures remaining");
@@ -246,12 +242,9 @@ public class NotificationServiceImpl implements NotificationService {
                 return;
             }
 
-            // STEP 2: Process new records from view (if COB finished)
+            // STEP 2: Process new records from view (if COB finished and view has data)
             log.info("STEP 1: Processing new records from view ({})", timeLabel);
             processPendingSmsNotifications();
-
-            // Update tracking after processing
-            lastProcessingTime = LocalDateTime.now();
 
             // STEP 3: Retry failed records
             log.info("STEP 2: Retrying failed records ({})", timeLabel);
@@ -270,7 +263,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     private boolean isProcessingComplete(LocalDate reportDate) {
         try {
-            // Check 1: No failures in SmsFailureLog
             List<SmsFailureLog> failedRecords = smsFailureLogRepository.findFailedRecordsByReportDate(reportDate);
 
             if (!failedRecords.isEmpty()) {
@@ -278,20 +270,7 @@ public class NotificationServiceImpl implements NotificationService {
                 return false;
             }
 
-            // Check 2: We must have processed at least once (lastProcessingTime set)
-            if (lastProcessingTime == null) {
-                log.debug("Processing NOT complete: No records processed yet (COB might not be finished)");
-                return false;
-            }
-
-            // Check 3: Enough time has passed since last processing
-            LocalDateTime thresholdTime = lastProcessingTime.plusMinutes(PROCESSING_COMPLETE_THRESHOLD_MINUTES);
-            if (LocalDateTime.now().isBefore(thresholdTime)) {
-                log.debug("Processing NOT complete: Not enough time passed since last processing");
-                return false;
-            }
-
-            log.info("✓ Processing COMPLETE: Zero failures + time threshold passed");
+            log.info("✓ Processing COMPLETE: No failures remaining in SmsFailureLog");
             return true;
 
         } catch (Exception e) {
