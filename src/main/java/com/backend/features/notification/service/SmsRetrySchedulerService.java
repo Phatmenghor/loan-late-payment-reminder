@@ -67,32 +67,81 @@ public class SmsRetrySchedulerService {
         log.info("========== END: SMS Processing at 12:00 PM ==========");
     }
 
+    @Scheduled(cron = "0 0 13 * * ?")
+    public void scheduleProcessAt1Pm() {
+        log.info("========== START: SMS Processing at 1:00 PM (Retry) ==========");
+        processWithRetry("1:00 PM");
+        log.info("========== END: SMS Processing at 1:00 PM ==========");
+    }
+
     @Scheduled(cron = "0 0 14 * * ?")
     public void scheduleProcessAt2Pm() {
-        log.info("========== START: SMS Processing at 2:00 PM (COB might be delayed) ==========");
+        log.info("========== START: SMS Processing at 2:00 PM (Retry) ==========");
         processWithRetry("2:00 PM");
         log.info("========== END: SMS Processing at 2:00 PM ==========");
     }
 
     @Scheduled(cron = "0 0 15 * * ?")
     public void scheduleProcessAt3Pm() {
-        log.info("========== START: SMS Processing at 3:00 PM (COB might be delayed) ==========");
+        log.info("========== START: SMS Processing at 3:00 PM (Retry) ==========");
         processWithRetry("3:00 PM");
         log.info("========== END: SMS Processing at 3:00 PM ==========");
     }
 
     @Scheduled(cron = "0 0 16 * * ?")
     public void scheduleProcessAt4Pm() {
-        log.info("========== START: SMS Processing at 4:00 PM (COB might be delayed) ==========");
+        log.info("========== START: SMS Processing at 4:00 PM (Retry) ==========");
         processWithRetry("4:00 PM");
         log.info("========== END: SMS Processing at 4:00 PM ==========");
     }
 
     @Scheduled(cron = "0 0 17 * * ?")
     public void scheduleProcessAt5Pm() {
-        log.info("========== START: SMS Processing at 5:00 PM (Final check) ==========");
+        log.info("========== START: SMS Processing at 5:00 PM (Retry) ==========");
         processWithRetry("5:00 PM");
         log.info("========== END: SMS Processing at 5:00 PM ==========");
+    }
+
+    @Scheduled(cron = "0 0 18 * * ?")
+    public void scheduleProcessAt6Pm() {
+        log.info("========== START: SMS Processing at 6:00 PM (Retry) ==========");
+        processWithRetry("6:00 PM");
+        log.info("========== END: SMS Processing at 6:00 PM ==========");
+    }
+
+    @Scheduled(cron = "0 0 19 * * ?")
+    public void scheduleProcessAt7Pm() {
+        log.info("========== START: SMS Processing at 7:00 PM (Retry) ==========");
+        processWithRetry("7:00 PM");
+        log.info("========== END: SMS Processing at 7:00 PM ==========");
+    }
+
+    @Scheduled(cron = "0 0 20 * * ?")
+    public void scheduleProcessAt8Pm() {
+        log.info("========== START: SMS Processing at 8:00 PM (Retry) ==========");
+        processWithRetry("8:00 PM");
+        log.info("========== END: SMS Processing at 8:00 PM ==========");
+    }
+
+    @Scheduled(cron = "0 0 21 * * ?")
+    public void scheduleProcessAt9Pm() {
+        log.info("========== START: SMS Processing at 9:00 PM (Retry) ==========");
+        processWithRetry("9:00 PM");
+        log.info("========== END: SMS Processing at 9:00 PM ==========");
+    }
+
+    @Scheduled(cron = "0 0 22 * * ?")
+    public void scheduleProcessAt10Pm() {
+        log.info("========== START: SMS Processing at 10:00 PM (Retry) ==========");
+        processWithRetry("10:00 PM");
+        log.info("========== END: SMS Processing at 10:00 PM ==========");
+    }
+
+    @Scheduled(cron = "0 0 23 * * ?")
+    public void scheduleProcessAt11Pm() {
+        log.info("========== START: SMS Processing at 11:00 PM (Final Retry) ==========");
+        processWithRetry("11:00 PM");
+        log.info("========== END: SMS Processing at 11:00 PM ==========");
     }
 
     // ============ MAIN PROCESSING LOGIC ============
