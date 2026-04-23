@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <property name="LOG_PATH" value="logs" />
-    <property name="LOG_FILE_NAME" value="k-hourng-cambodia" />
+    <property name="LOG_FILE_NAME" value="sms-loan-late" />
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
     <property name="MAX_FILE_SIZE" value="512MB" />
     <timestamp key="byDay" datePattern="yyyy-MM-dd" />
+    <springProperty scope="context" name="springProfile" source="spring.profiles.active" defaultValue="dev" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -43,19 +44,44 @@
         </rollingPolicy>
     </appender>
 
-    <logger name="com.internal" level="INFO" additivity="false">
+    <!-- Application loggers -->
+    <logger name="com.backend" level="INFO" additivity="false">
         <appender-ref ref="FILE" />
         <appender-ref ref="ERROR_FILE" />
         <appender-ref ref="CONSOLE" />
     </logger>
 
+    <!-- Third-party loggers - WARN level only -->
     <logger name="org.springframework" level="WARN" />
+    <logger name="org.springframework.security" level="WARN" />
+    <logger name="org.springframework.web" level="WARN" />
     <logger name="org.hibernate" level="WARN" />
+    <logger name="org.hibernate.engine.transaction" level="WARN" />
     <logger name="com.zaxxer.hikari" level="WARN" />
+    <logger name="org.apache.catalina" level="WARN" />
 
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="FILE" />
-        <appender-ref ref="ERROR_FILE" />
-    </root>
+    <!-- Profile-specific root level -->
+    <springProfile name="dev,local">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
+    </springProfile>
+
+    <!-- Default root (fallback) -->
+    <springProfile name="default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
+    </springProfile>
 </configuration>
