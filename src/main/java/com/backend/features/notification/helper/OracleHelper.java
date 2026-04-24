@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,9 +23,13 @@ public class OracleHelper {
 
             ResultSet rs = ps.executeQuery();
 
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yy");
             while (rs.next()) {
+                String reportDateStr = rs.getString("REPORTDATE");
+                LocalDate reportDate = LocalDate.parse(reportDateStr, formatter);
+
                 LoanLateReminderDto record = LoanLateReminderDto.builder()
-                        .reportDate(rs.getTimestamp("REPORTDATE").toLocalDateTime().toLocalDate())
+                        .reportDate(reportDate)
                         .customerId(rs.getString("CUSTOMERID"))
                         .phoneNumber(rs.getString("MBAPP_PHONE"))
                         .arrangementId(rs.getString("ARRANGEMENT"))
