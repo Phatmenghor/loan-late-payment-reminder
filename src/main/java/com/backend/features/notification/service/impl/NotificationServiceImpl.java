@@ -6,7 +6,7 @@ import com.backend.shared.constants.NotificationConstants;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendNotificationRequestDto;
-import com.backend.features.notification.enums.ProcessingResult;
+import com.backend.enums.common.ProcessingResult;
 import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;

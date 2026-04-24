@@ -1,4 +1,4 @@
-package com.backend.features.notification.enums;
+package com.backend.enums.common;
 
 public enum ProcessingResult {
     COB_NOT_FINISHED("View is empty - COB not yet finished", -1),

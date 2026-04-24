@@ -1,7 +1,7 @@
 package com.backend.features.notification.service;
 
 import com.backend.features.notification.dto.SendNotificationRequestDto;
-import com.backend.features.notification.enums.ProcessingResult;
+import com.backend.enums.common.ProcessingResult;
 
 public interface NotificationService {
 
