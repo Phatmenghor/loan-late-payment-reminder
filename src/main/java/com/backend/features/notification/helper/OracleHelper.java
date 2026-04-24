@@ -17,7 +17,7 @@ public class OracleHelper {
         List<LoanLateReminderDto> records = new ArrayList<>();
         String query = "SELECT reportdate, customerid, mbapp_phone, arrangement " +
                 "FROM stg.view_loan_late_reminder " +
-                "WHERE TRUNC(reportdate) >= TRUNC(SYSDATE) - 1";
+                "WHERE TRUNC(reportdate) >= TRUNC(SYSDATE - 1)";
 
         try (Connection con = OracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
