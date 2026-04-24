@@ -1,6 +1,7 @@
 package com.backend.features.notification.config;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,18 +14,11 @@ import java.util.concurrent.Executor;
 @EnableAsync
 @ConfigurationProperties(prefix = "app.sms")
 @Getter
+@Setter
 public class SmsAsyncConfig {
 
     private Integer batchSize = 20;
     private Integer maxThreads = 10;
-
-    public void setBatchSize(Integer batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public void setMaxThreads(Integer maxThreads) {
-        this.maxThreads = maxThreads;
-    }
 
     @Bean(name = "smsExecutor")
     public Executor smsExecutor() {
@@ -37,3 +31,4 @@ public class SmsAsyncConfig {
         return executor;
     }
 }
+
