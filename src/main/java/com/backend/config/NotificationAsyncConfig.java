@@ -1,4 +1,4 @@
-package com.backend.features.notification.config;
+package com.backend.config;
 
 import lombok.Getter;
 import lombok.Setter;

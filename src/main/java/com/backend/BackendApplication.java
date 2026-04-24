@@ -16,7 +16,7 @@ public class BackendApplication {
 		SpringApplication.run(BackendApplication.class, args);
 		System.out.println("""
             
-            🇰🇭 Cambodia E-Menu Platform Started Successfully! 🇰🇭
+            🇰🇭 Cambodia Platform Started Successfully! 🇰🇭
            
             
             🌐 Access Points:
