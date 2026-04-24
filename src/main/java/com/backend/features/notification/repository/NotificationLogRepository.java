@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface NotificationLogRepository extends BaseRepository<NotificationLog, UUID> {
-    Optional<NotificationLog> findByCustomerIdAndPhoneNumberAndReportDateAndSmsStatus(
-            String customerId, String phoneNumber, LocalDate reportDate, String smsStatus);
+    Optional<NotificationLog> findByCustomerIdAndPhoneNumberAndReportDateAndNotificationStatus(
+            String customerId, String phoneNumber, LocalDate reportDate, String notificationStatus);
 }
