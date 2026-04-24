@@ -329,41 +329,35 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    public void sendSmsDirectly(String phoneNumber, String messageContent) throws RestClientException {
-        sendSmsToApi(phoneNumber, messageContent);
-        logToPostgreSQLSimple(phoneNumber, SMS_STATUS_SUCCESS, messageContent);
-    }
-
-    private void logToPostgreSQLSimple(String phoneNumber, String status, String messageContent) {
-        try {
-            SmsLog smsLog = SmsLog.builder()
-                    .phoneNumber(phoneNumber)
-                    .messageContent(messageContent)
-                    .smsStatus(status)
-                    .smsLogDate(LocalDateTime.now())
-                    .build();
-
-            smsLogRepository.save(smsLog);
-
-        } catch (Exception e) {
-            log.error("ERROR saving SMS audit log for phone: {}: {}", phoneNumber, e.getMessage(), e);
-        }
-    }
-
     @Override
     public String sendTestSms(SendSmsRequestDto request) {
         log.info("TEST SMS: Sending to phone: {}", request.getPhoneNumber());
 
         try {
             sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
-            logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_SUCCESS, request.getMessageContent());
+
+            SmsLog smsLog = SmsLog.builder()
+                    .phoneNumber(request.getPhoneNumber())
+                    .messageContent(request.getMessageContent())
+                    .smsStatus(SMS_STATUS_SUCCESS)
+                    .smsLogDate(LocalDateTime.now())
+                    .build();
+            smsLogRepository.save(smsLog);
 
             log.info("TEST SMS: Sent successfully");
             return SMS_STATUS_SUCCESS;
 
         } catch (Exception e) {
             log.error("TEST SMS: Failed for phone: {}: {}", request.getPhoneNumber(), e.getMessage(), e);
-            logToPostgreSQLSimple(request.getPhoneNumber(), SMS_STATUS_FAILURE, request.getMessageContent());
+
+            SmsLog smsLog = SmsLog.builder()
+                    .phoneNumber(request.getPhoneNumber())
+                    .messageContent(request.getMessageContent())
+                    .smsStatus(SMS_STATUS_FAILURE)
+                    .smsLogDate(LocalDateTime.now())
+                    .build();
+            smsLogRepository.save(smsLog);
+
             throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
         }
     }
@@ -386,9 +380,5 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         log.info("END: Hourly SMS processing");
-    }
-
-    public String getMessageContent() {
-        return cpbHelper.getContentDescription();
     }
 }
