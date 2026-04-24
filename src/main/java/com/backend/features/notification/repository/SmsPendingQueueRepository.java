@@ -18,25 +18,25 @@ import java.util.UUID;
 @Repository
 public interface SmsPendingQueueRepository extends BaseRepository<SmsPendingQueue, UUID> {
 
-    @Query("SELECT q FROM SmsPendingQueue q WHERE q.status = :status AND q.reportDate = :reportDate")
+    @Query("SELECT q FROM SmsPendingQueue q WHERE q.status = :status AND q.reportDate = :reportDate AND q.isDeleted = false")
     List<SmsPendingQueue> findByStatusAndReportDate(@Param("status") String status, @Param("reportDate") LocalDate reportDate);
 
-    @Query("SELECT COUNT(q) FROM SmsPendingQueue q WHERE q.status = :status AND q.reportDate = :reportDate")
+    @Query("SELECT COUNT(q) FROM SmsPendingQueue q WHERE q.status = :status AND q.reportDate = :reportDate AND q.isDeleted = false")
     long countByStatusAndReportDate(@Param("status") String status, @Param("reportDate") LocalDate reportDate);
 
-    @Query("SELECT q FROM SmsPendingQueue q WHERE q.reportDate = :reportDate")
+    @Query("SELECT q FROM SmsPendingQueue q WHERE q.reportDate = :reportDate AND q.isDeleted = false")
     List<SmsPendingQueue> findByReportDate(@Param("reportDate") LocalDate reportDate);
 
-    @Query("SELECT q FROM SmsPendingQueue q WHERE q.customerId = :customerId AND q.phoneNumber = :phoneNumber AND q.reportDate = :reportDate AND q.status = 'SUCCESS'")
+    @Query("SELECT q FROM SmsPendingQueue q WHERE q.customerId = :customerId AND q.phoneNumber = :phoneNumber AND q.reportDate = :reportDate AND q.status = 'SUCCESS' AND q.isDeleted = false")
     Optional<SmsPendingQueue> findByCustomerIdAndPhoneAndDateAndSuccess(
             @Param("customerId") String customerId,
             @Param("phoneNumber") String phoneNumber,
             @Param("reportDate") LocalDate reportDate);
 
-    @Query("SELECT COUNT(q) FROM SmsPendingQueue q WHERE q.reportDate = :reportDate AND q.status = 'PENDING'")
+    @Query("SELECT COUNT(q) FROM SmsPendingQueue q WHERE q.reportDate = :reportDate AND q.status = 'PENDING' AND q.isDeleted = false")
     long countPendingByReportDate(@Param("reportDate") LocalDate reportDate);
 
-    @Query("SELECT COUNT(q) FROM SmsPendingQueue q WHERE q.reportDate = :reportDate AND q.status = 'FAILURE'")
+    @Query("SELECT COUNT(q) FROM SmsPendingQueue q WHERE q.reportDate = :reportDate AND q.status = 'FAILURE' AND q.isDeleted = false")
     long countFailureByReportDate(@Param("reportDate") LocalDate reportDate);
 
     @Modifying
@@ -46,8 +46,9 @@ public interface SmsPendingQueueRepository extends BaseRepository<SmsPendingQueu
             SET status = :status,
                 processed_at = :processedAt,
                 failure_reason = CASE WHEN :failureReason IS NOT NULL THEN :failureReason ELSE failure_reason END,
-                retry_count = CASE WHEN :status = 'FAILURE' THEN retry_count + 1 ELSE retry_count END
-            WHERE id = :id
+                retry_count = CASE WHEN :status = 'FAILURE' THEN retry_count + 1 ELSE retry_count END,
+                updated_at = :processedAt
+            WHERE id = :id AND is_deleted = false
             """, nativeQuery = true)
     int updateQueueStatusById(
             @Param("id") UUID id,

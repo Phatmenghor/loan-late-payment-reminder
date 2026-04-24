@@ -43,9 +43,6 @@ public class SmsPendingQueue extends BaseUUIDEntity {
     @Column(name = "status", nullable = false)
     private String status; // PENDING, SUCCESS, FAILURE
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 

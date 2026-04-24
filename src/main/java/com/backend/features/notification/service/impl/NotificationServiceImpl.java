@@ -132,7 +132,6 @@ public class NotificationServiceImpl implements NotificationService {
                         .reportDate(reportDate)
                         .messageContent(messageContent)
                         .status(QUEUE_STATUS_PENDING)
-                        .createdAt(LocalDateTime.now())
                         .retryCount(0)
                         .build();
 
