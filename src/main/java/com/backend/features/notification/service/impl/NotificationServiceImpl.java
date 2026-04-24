@@ -151,21 +151,34 @@ public class NotificationServiceImpl implements NotificationService {
 
     private int[] processQueuedRecords(LocalDate reportDate) {
         try {
-            List<NotificationQueue> pendingRecords = notificationQueueRepository
-                    .findByStatusAndReportDate(NotificationConstants.QueueStatus.PENDING, reportDate);
+            List<NotificationQueue> allRecords = notificationQueueRepository.findByReportDate(reportDate);
 
-            if (pendingRecords.isEmpty()) {
+            if (allRecords.isEmpty()) {
                 return new int[]{0, 0};
             }
 
-            log.info("Starting delivery: {} pending messages in queue", pendingRecords.size());
+            List<NotificationQueue> recordsToProcess = new ArrayList<>();
+            for (NotificationQueue record : allRecords) {
+                String status = record.getStatus();
+                if (NotificationConstants.QueueStatus.PENDING.equals(status) ||
+                    NotificationConstants.QueueStatus.FAILURE.equals(status)) {
+                    recordsToProcess.add(record);
+                }
+            }
 
-            String messageContent = pendingRecords.get(0).getMessageContent();
+            if (recordsToProcess.isEmpty()) {
+                log.info("No pending or failed records to process for {}", reportDate);
+                return new int[]{0, 0};
+            }
+
+            log.info("Starting delivery: {} pending/failed messages in queue", recordsToProcess.size());
+
+            String messageContent = recordsToProcess.get(0).getMessageContent();
             if (messageContent == null) {
                 messageContent = cpbHelper.getContentDescription();
             }
 
-            int[] counts = processBatchAsync(pendingRecords, messageContent);
+            int[] counts = processBatchAsync(recordsToProcess, messageContent);
             log.info("Delivery batch complete: {} successful, {} failed", counts[0], counts[1]);
 
             return counts;
