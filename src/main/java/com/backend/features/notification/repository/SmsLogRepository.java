@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface SmsLogRepository extends BaseRepository<SmsLog, UUID> {
-    Optional<SmsLog> findByCustomerIdAndPhoneNumberAndReportDateAndStatus(
-            String customerId, String phoneNumber, LocalDate reportDate, String status);
+    Optional<SmsLog> findByCustomerIdAndPhoneNumberAndReportDateAndSmsStatus(
+            String customerId, String phoneNumber, LocalDate reportDate, String smsStatus);
 }
