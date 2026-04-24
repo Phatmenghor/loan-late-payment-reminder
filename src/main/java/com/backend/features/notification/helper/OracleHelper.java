@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 @Slf4j
@@ -23,7 +24,7 @@ public class OracleHelper {
 
             ResultSet rs = ps.executeQuery();
 
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH);
             while (rs.next()) {
                 String reportDateStr = rs.getString("REPORTDATE");
                 LocalDate reportDate = LocalDate.parse(reportDateStr, formatter);
