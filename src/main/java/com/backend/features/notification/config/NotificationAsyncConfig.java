@@ -12,21 +12,21 @@ import java.util.concurrent.Executor;
 
 @Configuration
 @EnableAsync
-@ConfigurationProperties(prefix = "app.sms")
+@ConfigurationProperties(prefix = "app.notification")
 @Getter
 @Setter
-public class SmsAsyncConfig {
+public class NotificationAsyncConfig {
 
     private Integer batchSize = 20;
     private Integer maxThreads = 10;
 
-    @Bean(name = "smsExecutor")
-    public Executor smsExecutor() {
+    @Bean(name = "notificationExecutor")
+    public Executor notificationExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(maxThreads);
         executor.setMaxPoolSize(maxThreads);
         executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("sms-async-");
+        executor.setThreadNamePrefix("notification-async-");
         executor.initialize();
         return executor;
     }

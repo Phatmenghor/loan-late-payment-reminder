@@ -12,16 +12,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sms_processing_status", indexes = {
-        @Index(name = "idx_processing_status_report_date", columnList = "report_date"),
-        @Index(name = "idx_processing_status_is_complete", columnList = "is_complete")
+@Table(name = "notification_processing_status", indexes = {
+        @Index(name = "idx_notification_processing_status_report_date", columnList = "report_date"),
+        @Index(name = "idx_notification_processing_status_is_complete", columnList = "is_complete")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false)
-public class ProcessingStatus extends BaseUUIDEntity {
+public class NotificationProcessingStatus extends BaseUUIDEntity {
 
     @Column(name = "report_date", nullable = false)
     private LocalDate reportDate;

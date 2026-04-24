@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SmsRetrySchedulerService {
+public class NotificationRetrySchedulerService {
 
     private final NotificationServiceImpl notificationService;
 

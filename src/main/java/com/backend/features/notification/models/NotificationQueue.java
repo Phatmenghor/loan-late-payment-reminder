@@ -9,18 +9,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sms_pending_queue", indexes = {
-        @Index(name = "idx_queue_status", columnList = "status"),
-        @Index(name = "idx_queue_report_date", columnList = "report_date"),
-        @Index(name = "idx_queue_phone", columnList = "phone_number"),
-        @Index(name = "idx_queue_status_date", columnList = "status, report_date")
+@Table(name = "notification_queue", indexes = {
+        @Index(name = "idx_notification_queue_status", columnList = "status"),
+        @Index(name = "idx_notification_queue_report_date", columnList = "report_date"),
+        @Index(name = "idx_notification_queue_phone", columnList = "phone_number"),
+        @Index(name = "idx_notification_queue_status_date", columnList = "status, report_date")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(callSuper = false)
-public class SmsPendingQueue extends BaseUUIDEntity {
+public class NotificationQueue extends BaseUUIDEntity {
 
     @Column(name = "customer_id", nullable = false)
     private String customerId;

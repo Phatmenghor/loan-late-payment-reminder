@@ -1,6 +1,6 @@
 package com.backend.features.notification.controller;
 
-import com.backend.features.notification.dto.SendSmsRequestDto;
+import com.backend.features.notification.dto.SendNotificationRequestDto;
 import com.backend.features.notification.service.NotificationService;
 import com.backend.shared.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -28,7 +28,7 @@ public class NotificationController {
     }
 
     @PostMapping("/sms/test")
-    public ResponseEntity<ApiResponse<String>> sendTestSms(@Valid @RequestBody SendSmsRequestDto request) {
+    public ResponseEntity<ApiResponse<String>> sendTestSms(@Valid @RequestBody SendNotificationRequestDto request) {
         log.info("REST: Sending test SMS to {}", request.getPhoneNumber());
 
         String result = notificationService.sendTestSms(request);

@@ -1,5 +1,5 @@
--- Create sms_processing_status table to track daily SMS processing results
-CREATE TABLE IF NOT EXISTS sms_processing_status (
+-- Create notification_processing_status table to track daily SMS processing results
+CREATE TABLE IF NOT EXISTS notification_processing_status (
     id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     report_date DATE NOT NULL UNIQUE,
     total_customers INTEGER NOT NULL,
@@ -16,5 +16,5 @@ CREATE TABLE IF NOT EXISTS sms_processing_status (
 );
 
 -- Create indexes for query performance
-CREATE INDEX IF NOT EXISTS idx_processing_status_report_date ON sms_processing_status(report_date);
-CREATE INDEX IF NOT EXISTS idx_processing_status_is_complete ON sms_processing_status(is_complete);
+CREATE INDEX IF NOT EXISTS idx_notification_processing_status_report_date ON notification_processing_status(report_date);
+CREATE INDEX IF NOT EXISTS idx_notification_processing_status_is_complete ON notification_processing_status(is_complete);

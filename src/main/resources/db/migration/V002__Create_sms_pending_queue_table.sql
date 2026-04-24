@@ -1,5 +1,5 @@
--- Create sms_pending_queue table for SMS notification processing
-CREATE TABLE IF NOT EXISTS sms_pending_queue (
+-- Create notification_queue table for SMS notification processing
+CREATE TABLE IF NOT EXISTS notification_queue (
     id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id VARCHAR(100) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
@@ -18,9 +18,9 @@ CREATE TABLE IF NOT EXISTS sms_pending_queue (
 );
 
 -- Create indexes for query performance
-CREATE INDEX IF NOT EXISTS idx_queue_status ON sms_pending_queue(status);
-CREATE INDEX IF NOT EXISTS idx_queue_report_date ON sms_pending_queue(report_date);
-CREATE INDEX IF NOT EXISTS idx_queue_phone ON sms_pending_queue(phone_number);
-CREATE INDEX IF NOT EXISTS idx_queue_status_date ON sms_pending_queue(status, report_date);
-CREATE INDEX IF NOT EXISTS idx_queue_customer ON sms_pending_queue(customer_id);
-CREATE INDEX IF NOT EXISTS idx_queue_is_deleted ON sms_pending_queue(is_deleted);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_status ON notification_queue(status);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_report_date ON notification_queue(report_date);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_phone ON notification_queue(phone_number);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_status_date ON notification_queue(status, report_date);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_customer ON notification_queue(customer_id);
+CREATE INDEX IF NOT EXISTS idx_notification_queue_is_deleted ON notification_queue(is_deleted);

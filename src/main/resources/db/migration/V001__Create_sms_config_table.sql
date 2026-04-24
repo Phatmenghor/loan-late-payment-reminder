@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS sms_config (
+CREATE TABLE IF NOT EXISTS notification_config (
     id UUID PRIMARY KEY,
     config_type VARCHAR(50) NOT NULL UNIQUE,
     config_value TEXT NOT NULL,
@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS sms_config (
     CONSTRAINT idx_config_type UNIQUE (config_type)
 );
 
-CREATE INDEX IF NOT EXISTS idx_sms_config_type ON sms_config(config_type);
+CREATE INDEX IF NOT EXISTS idx_notification_config_type ON notification_config(config_type);

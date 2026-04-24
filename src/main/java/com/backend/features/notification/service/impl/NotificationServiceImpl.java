@@ -1,22 +1,22 @@
 package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
-import com.backend.features.notification.config.SmsAsyncConfig;
+import com.backend.features.notification.config.NotificationAsyncConfig;
 import com.backend.features.notification.constants.NotificationConstants;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
-import com.backend.features.notification.dto.SendSmsRequestDto;
+import com.backend.features.notification.dto.SendNotificationRequestDto;
 import com.backend.features.notification.enums.ProcessingResult;
 import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
 import com.backend.features.notification.helper.TestDataHelper;
-import com.backend.features.notification.models.ProcessingStatus;
-import com.backend.features.notification.models.SmsPendingQueue;
-import com.backend.features.notification.models.SmsLog;
-import com.backend.features.notification.repository.ProcessingStatusRepository;
-import com.backend.features.notification.repository.SmsPendingQueueRepository;
-import com.backend.features.notification.repository.SmsLogRepository;
+import com.backend.features.notification.models.NotificationProcessingStatus;
+import com.backend.features.notification.models.NotificationQueue;
+import com.backend.features.notification.models.NotificationLog;
+import com.backend.features.notification.repository.NotificationProcessingStatusRepository;
+import com.backend.features.notification.repository.NotificationQueueRepository;
+import com.backend.features.notification.repository.NotificationLogRepository;
 import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,11 +56,11 @@ public class NotificationServiceImpl implements NotificationService {
     private final CpbApiConfig cpbApiConfig;
     private final OracleHelper oracleHelper;
     private final TestDataHelper testDataHelper;
-    private final SmsLogRepository smsLogRepository;
-    private final ProcessingStatusRepository processingStatusRepository;
-    private final SmsPendingQueueRepository smsPendingQueueRepository;
+    private final NotificationLogRepository notificationLogRepository;
+    private final NotificationProcessingStatusRepository notificationProcessingStatusRepository;
+    private final NotificationQueueRepository notificationQueueRepository;
     private final CpbHelper cpbHelper;
-    private final SmsAsyncConfig smsAsyncConfig;
+    private final NotificationAsyncConfig notificationAsyncConfig;
 
     @Override
     public ProcessingResult processPendingSmsNotifications() {
@@ -70,16 +70,16 @@ public class NotificationServiceImpl implements NotificationService {
             LocalDate reportDate = LocalDate.now().minusDays(1);
             log.info("Target report date: {}", reportDate);
 
-            Optional<ProcessingStatus> existingStatus = processingStatusRepository.findCompleteByReportDate(reportDate);
+            Optional<NotificationProcessingStatus> existingStatus = notificationProcessingStatusRepository.findCompleteByReportDate(reportDate);
             if (existingStatus.isPresent()) {
-                ProcessingStatus status = existingStatus.get();
+                NotificationProcessingStatus status = existingStatus.get();
                 log.info("CACHE HIT: {} already processed successfully", reportDate);
                 log.info("Cached results: {} total, {} success, {} failure (completed at {})",
                         status.getTotalCustomers(), status.getSuccessCount(), status.getFailureCount(), status.getCompletedAt());
                 return ProcessingResult.ALL_SUCCESS;
             }
 
-            List<SmsPendingQueue> existingQueue = smsPendingQueueRepository.findByReportDate(reportDate);
+            List<NotificationQueue> existingQueue = notificationQueueRepository.findByReportDate(reportDate);
             if (existingQueue.isEmpty()) {
                 log.info("Queue empty for {}, fetching records", reportDate);
 
@@ -126,7 +126,7 @@ public class NotificationServiceImpl implements NotificationService {
         try {
 
             for (LoanLateReminderDto record : records) {
-                SmsPendingQueue queueRecord = SmsPendingQueue.builder()
+                NotificationQueue queueRecord = NotificationQueue.builder()
                         .customerId(record.getCustomerId())
                         .phoneNumber(record.getPhoneNumber())
                         .arrangementId(record.getArrangementId())
@@ -137,7 +137,7 @@ public class NotificationServiceImpl implements NotificationService {
                         .retryCount(0)
                         .build();
 
-                smsPendingQueueRepository.save(queueRecord);
+                notificationQueueRepository.save(queueRecord);
             }
 
             log.info("Queued: {} records added with status=PENDING", records.size());
@@ -149,7 +149,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private int[] processQueuedRecords(LocalDate reportDate) {
         try {
-            List<SmsPendingQueue> pendingRecords = smsPendingQueueRepository
+            List<NotificationQueue> pendingRecords = notificationQueueRepository
                     .findByStatusAndReportDate(NotificationConstants.QueueStatus.PENDING, reportDate);
 
             if (pendingRecords.isEmpty()) {
@@ -173,17 +173,17 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    public int[] processBatchAsync(List<SmsPendingQueue> records, String messageContent) {
+    public int[] processBatchAsync(List<NotificationQueue> records, String messageContent) {
 
-    private int[] processBatchAsync(List<SmsPendingQueue> records, String messageContent) {
-        int batchSize = smsAsyncConfig.getBatchSize();
+    private int[] processBatchAsync(List<NotificationQueue> records, String messageContent) {
+        int batchSize = notificationAsyncConfig.getBatchSize();
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failureCount = new AtomicInteger(0);
         List<CompletableFuture<int[]>> futures = new ArrayList<>();
 
         for (int i = 0; i < records.size(); i += batchSize) {
             int endIndex = Math.min(i + batchSize, records.size());
-            List<SmsPendingQueue> batch = records.subList(i, endIndex);
+            List<NotificationQueue> batch = records.subList(i, endIndex);
 
             CompletableFuture<int[]> future = processSingleBatchAsync(batch, messageContent);
             futures.add(future);
@@ -203,15 +203,15 @@ public class NotificationServiceImpl implements NotificationService {
         return new int[]{successCount.get(), failureCount.get()};
     }
 
-    @Async("smsExecutor")
+    @Async("notificationExecutor")
     @Transactional
-    public CompletableFuture<int[]> processSingleBatchAsync(List<SmsPendingQueue> batch, String messageContent) {
+    public CompletableFuture<int[]> processSingleBatchAsync(List<NotificationQueue> batch, String messageContent) {
         int success = 0;
         int failure = 0;
 
-        for (SmsPendingQueue queueRecord : batch) {
+        for (NotificationQueue queueRecord : batch) {
             try {
-                Optional<SmsPendingQueue> existingSuccess = smsPendingQueueRepository
+                Optional<NotificationQueue> existingSuccess = notificationQueueRepository
                         .findByCustomerIdAndPhoneAndDateAndSuccess(
                                 queueRecord.getCustomerId(),
                                 queueRecord.getPhoneNumber(),
@@ -238,7 +238,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
 
-    private void updateQueueStatus(SmsPendingQueue queueRecord, String status, String failureReason) {
+    private void updateQueueStatus(NotificationQueue queueRecord, String status, String failureReason) {
         int maxRetries = 3;
         int retryDelayMs = 50;
 
@@ -247,7 +247,7 @@ public class NotificationServiceImpl implements NotificationService {
                 LocalDateTime now = LocalDateTime.now();
 
                 // Use direct UPDATE query to avoid optimistic lock conflicts
-                int rowsUpdated = smsPendingQueueRepository.updateQueueStatusById(
+                int rowsUpdated = notificationQueueRepository.updateQueueStatusById(
                         queueRecord.getId(),
                         status,
                         now,
@@ -288,15 +288,15 @@ public class NotificationServiceImpl implements NotificationService {
 
     private void checkAndMarkCompletion(LocalDate reportDate) {
         try {
-            long failureCount = smsPendingQueueRepository.countFailureByReportDate(reportDate);
-            List<SmsPendingQueue> allRecords = smsPendingQueueRepository.findByReportDate(reportDate);
+            long failureCount = notificationQueueRepository.countFailureByReportDate(reportDate);
+            List<NotificationQueue> allRecords = notificationQueueRepository.findByReportDate(reportDate);
             long totalCount = allRecords.size();
             long successCount = totalCount - failureCount;
 
             if (failureCount == 0 && totalCount > 0) {
-                Optional<ProcessingStatus> existing = processingStatusRepository.findByReportDate(reportDate);
+                Optional<NotificationProcessingStatus> existing = notificationProcessingStatusRepository.findByReportDate(reportDate);
 
-                ProcessingStatus status = existing.orElseGet(() -> ProcessingStatus.builder()
+                NotificationProcessingStatus status = existing.orElseGet(() -> NotificationProcessingStatus.builder()
                         .reportDate(reportDate)
                         .build());
 
@@ -308,7 +308,7 @@ public class NotificationServiceImpl implements NotificationService {
                 status.setLastCheckedAt(LocalDateTime.now());
                 status.setNotes("All SMS processed successfully from queue");
 
-                processingStatusRepository.save(status);
+                notificationProcessingStatusRepository.save(status);
                 log.info("Completion recorded: {} messages processed (all successful)", totalCount);
             } else if (failureCount > 0) {
                 log.info("Completion check: {} successful, {} pending retry", successCount, failureCount);
@@ -357,20 +357,20 @@ public class NotificationServiceImpl implements NotificationService {
         return phoneNumber;
     }
 
-    private void logToPostgresSQL(SmsPendingQueue queueRecord, String status, String messageContent) {
+    private void logToPostgresSQL(NotificationQueue queueRecord, String status, String messageContent) {
         try {
-            SmsLog smsLog = SmsLog.builder()
+            NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(queueRecord.getPhoneNumber())
                     .customerId(queueRecord.getCustomerId())
                     .reportDate(queueRecord.getReportDate())
                     .arrangementId(queueRecord.getArrangementId())
                     .dayDue(queueRecord.getDayDue())
                     .messageContent(messageContent)
-                    .smsStatus(status)
-                    .smsLogDate(LocalDateTime.now())
+                    .notificationStatus(status)
+                    .notificationLogDate(LocalDateTime.now())
                     .build();
 
-            smsLogRepository.save(smsLog);
+            notificationLogRepository.save(smsLog);
 
         } catch (Exception e) {
             log.error("Audit log save failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
@@ -378,19 +378,19 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public String sendTestSms(SendSmsRequestDto request) {
+    public String sendTestSms(SendNotificationRequestDto request) {
         log.info("Test endpoint invoked for {}", request.getPhoneNumber());
 
         try {
             sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
 
-            SmsLog smsLog = SmsLog.builder()
+            NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
-                    .smsStatus(NotificationConstants.NotificationStatus.SUCCESS)
-                    .smsLogDate(LocalDateTime.now())
+                    .notificationStatus(NotificationConstants.NotificationStatus.SUCCESS)
+                    .notificationLogDate(LocalDateTime.now())
                     .build();
-            smsLogRepository.save(smsLog);
+            notificationLogRepository.save(smsLog);
 
             log.info("Test SMS delivered successfully");
             return NotificationConstants.NotificationStatus.SUCCESS;
@@ -398,13 +398,13 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception e) {
             log.error("Test SMS delivery failed: {}", e.getMessage(), e);
 
-            SmsLog smsLog = SmsLog.builder()
+            NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
-                    .smsStatus(NotificationConstants.NotificationStatus.FAILURE)
-                    .smsLogDate(LocalDateTime.now())
+                    .notificationStatus(NotificationConstants.NotificationStatus.FAILURE)
+                    .notificationLogDate(LocalDateTime.now())
                     .build();
-            smsLogRepository.save(smsLog);
+            notificationLogRepository.save(smsLog);
 
             throw new RuntimeException("Failed to send test SMS: " + e.getMessage(), e);
         }
@@ -433,7 +433,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void cleanupOldQueueRecords() {
         try {
             LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
-            int deletedCount = smsPendingQueueRepository.deleteSuccessfulRecordsOlderThan(twoDaysAgo);
+            int deletedCount = notificationQueueRepository.deleteSuccessfulRecordsOlderThan(twoDaysAgo);
 
             if (deletedCount > 0) {
                 log.info("Queue cleanup: Deleted {} successful records older than 2 days", deletedCount);

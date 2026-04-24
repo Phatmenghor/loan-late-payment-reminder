@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SendSmsRequestDto {
+public class SendNotificationRequestDto {
     @NotBlank(message = "Phone number is required")
     private String phoneNumber;
 
