@@ -19,6 +19,7 @@ import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -223,22 +224,50 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void updateQueueStatus(SmsPendingQueue queueRecord, String status, String failureReason) {
-        try {
-            queueRecord.setStatus(status);
-            queueRecord.setProcessedAt(LocalDateTime.now());
+        int maxRetries = 3;
+        int retryDelayMs = 50;
 
-            if (failureReason != null) {
-                queueRecord.setFailureReason(failureReason);
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                LocalDateTime now = LocalDateTime.now();
+
+                // Use direct UPDATE query to avoid optimistic lock conflicts
+                int rowsUpdated = smsPendingQueueRepository.updateQueueStatusById(
+                        queueRecord.getId(),
+                        status,
+                        now,
+                        failureReason);
+
+                if (rowsUpdated > 0) {
+                    log.debug("Queue status updated successfully for {}: {} (attempt {})",
+                            queueRecord.getPhoneNumber(), status, attempt);
+                    return;
+                } else {
+                    log.warn("Queue record not found for ID: {} (phone: {})",
+                            queueRecord.getId(), queueRecord.getPhoneNumber());
+                    return;
+                }
+
+            } catch (OptimisticLockingFailureException e) {
+                if (attempt < maxRetries) {
+                    log.warn("Optimistic lock conflict for {} (attempt {}/{}), retrying...",
+                            queueRecord.getPhoneNumber(), attempt, maxRetries);
+                    try {
+                        Thread.sleep(retryDelayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.error("Retry interrupted for {}: {}", queueRecord.getPhoneNumber(), ie.getMessage());
+                        return;
+                    }
+                } else {
+                    log.error("Failed to update queue status after {} attempts for {}: {}",
+                            maxRetries, queueRecord.getPhoneNumber(), e.getMessage());
+                }
+
+            } catch (Exception e) {
+                log.error("Failed to update queue status for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
+                return;
             }
-
-            if (status.equals(QUEUE_STATUS_FAILURE)) {
-                queueRecord.setRetryCount(queueRecord.getRetryCount() + 1);
-            }
-
-            smsPendingQueueRepository.save(queueRecord);
-
-        } catch (Exception e) {
-            log.error("Failed to update queue status for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
         }
     }
 
