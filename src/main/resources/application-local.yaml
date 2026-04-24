@@ -44,7 +44,7 @@ cpb:
 datasource:
   oracle:
     enabled: true
-    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.127.88:1521:stg}
+    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:stg}
     username: ${ORACLE_USERNAME:stg}
     password: ${ORACLE_PASSWORD:Bnk$$444}
     driver-class-name: oracle.jdbc.driver.OracleDriver
