@@ -79,7 +79,6 @@ public class NotificationServiceImpl implements NotificationService {
                 log.info("Queue empty for {}, fetching from Oracle View", reportDate);
 
                 String messageContent = cpbHelper.getContentDescription();
-                log.debug("Retrieving VIEW_LOAN_LATE_REMINDER records");
                 List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
 
                 if (records.isEmpty()) {
@@ -93,7 +92,6 @@ public class NotificationServiceImpl implements NotificationService {
                 log.info("Queue reuse: {} records already queued for {}", existingQueue.size(), reportDate);
             }
 
-            log.debug("Configuration: batch-size={}, max-threads={}", smsAsyncConfig.getBatchSize(), smsAsyncConfig.getMaxThreads());
 
             int[] counts = processQueuedRecords(reportDate);
             int successCount = counts[0];
@@ -119,7 +117,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     private void storeRecordsToQueue(List<LoanLateReminderDto> records, String messageContent, LocalDate reportDate) {
         try {
-            log.debug("Persisting {} records to sms_pending_queue table", records.size());
 
             for (LoanLateReminderDto record : records) {
                 SmsPendingQueue queueRecord = SmsPendingQueue.builder()
@@ -150,7 +147,6 @@ public class NotificationServiceImpl implements NotificationService {
                     .findByStatusAndReportDate(QUEUE_STATUS_PENDING, reportDate);
 
             if (pendingRecords.isEmpty()) {
-                log.debug("No pending messages to deliver for {}", reportDate);
                 return new int[]{0, 0};
             }
 
@@ -177,7 +173,6 @@ public class NotificationServiceImpl implements NotificationService {
         AtomicInteger failureCount = new AtomicInteger(0);
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-        log.debug("Parallel execution: {} total messages, {} per batch", records.size(), batchSize);
 
         for (int i = 0; i < records.size(); i += batchSize) {
             int endIndex = Math.min(i + batchSize, records.size());
@@ -193,7 +188,6 @@ public class NotificationServiceImpl implements NotificationService {
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         allFutures.join();
 
-        log.debug("All parallel batches joined and completed");
         return new int[]{successCount.get(), failureCount.get()};
     }
 
@@ -207,7 +201,6 @@ public class NotificationServiceImpl implements NotificationService {
                                 queueRecord.getReportDate());
 
                 if (existingSuccess.isPresent()) {
-                    log.debug("Duplicate prevention: skipping {} (already delivered)", queueRecord.getPhoneNumber());
                     continue;
                 }
 
@@ -239,7 +232,6 @@ public class NotificationServiceImpl implements NotificationService {
             }
 
             smsPendingQueueRepository.save(queueRecord);
-            log.debug("Queue updated: {} status={} attempt={}", queueRecord.getPhoneNumber(), status, queueRecord.getRetryCount());
 
         } catch (Exception e) {
             log.error("Failed to update queue status for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
@@ -288,7 +280,6 @@ public class NotificationServiceImpl implements NotificationService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
 
-            log.debug("Calling CPB API endpoint for {}", phoneNumber);
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
                     apiUrl,
                     request,
@@ -322,7 +313,6 @@ public class NotificationServiceImpl implements NotificationService {
                     .build();
 
             smsLogRepository.save(smsLog);
-            log.debug("Audit record persisted for {}: {}", queueRecord.getPhoneNumber(), status);
 
         } catch (Exception e) {
             log.error("Audit log save failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
