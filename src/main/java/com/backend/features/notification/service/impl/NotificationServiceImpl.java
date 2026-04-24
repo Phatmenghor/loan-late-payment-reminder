@@ -221,10 +221,17 @@ public class NotificationServiceImpl implements NotificationService {
                     continue;
                 }
 
-                sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
-                updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
-                success++;
-                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
+                String apiStatus = sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
+
+                if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
+                    updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
+                    success++;
+                } else {
+                    updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, "API returned failure");
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                    failure++;
+                }
 
             } catch (Exception e) {
                 failure++;
@@ -319,21 +326,21 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
-//        if ("local".equals(activeProfile)) {
-//            log.info("SMS dispatch (LOCAL): {} | Message: {}", phoneNumber, messageContent);
-//            return NotificationConstants.NotificationStatus.SUCCESS;
-//        }
+    private String sendSmsToApi(String phoneNumber, String messageContent) {
+        if ("local".equals(activeProfile)) {
+            log.info("SMS dispatch (LOCAL): Phone: {} | Message: {}", phoneNumber, messageContent);
+            return NotificationConstants.NotificationStatus.SUCCESS;
+        }
 
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
 
-            log.info("SMS API call: POST {} | Phone: {} | Content: {}", apiUrl, phoneNumber, messageContent);
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
+
+            log.info("SMS API call: POST {} | Phone: {}", apiUrl, phoneNumber);
 
             ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
                     apiUrl,
@@ -341,17 +348,26 @@ public class NotificationServiceImpl implements NotificationService {
                     ReceptionFormatDto.class
             );
 
-            if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
-                log.info("SMS API response: {} | Status: {}", phoneNumber, apiResponse.getBody().getDesc());
-                return apiResponse.getBody().getDesc();
+            if (apiResponse.getStatusCode().is2xxSuccessful() && apiResponse.getBody() != null) {
+                ReceptionFormatDto body = apiResponse.getBody();
+                String code = body.getCode();
+                String desc = body.getDesc();
+
+                if (code != null && code.equals("0")) {
+                    log.info("SMS delivered successfully to {}: {}", phoneNumber, desc);
+                    return NotificationConstants.NotificationStatus.SUCCESS;
+                }
+
+                log.warn("SMS delivery failed for {}: Code={}, Desc={}", phoneNumber, code, desc);
+                return NotificationConstants.NotificationStatus.FAILURE;
             }
 
-            log.warn("SMS API empty response: {}", phoneNumber);
+            log.warn("SMS API error for {} | Status: {}", phoneNumber, apiResponse.getStatusCode());
             return NotificationConstants.NotificationStatus.FAILURE;
 
         } catch (RestClientException e) {
-            log.error("SMS API call failed: {} | Error: {}", phoneNumber, e.getMessage(), e);
-            throw e;
+            log.error("SMS API call failed for {}: {}", phoneNumber, e.getMessage());
+            return NotificationConstants.NotificationStatus.FAILURE;
         }
     }
 
