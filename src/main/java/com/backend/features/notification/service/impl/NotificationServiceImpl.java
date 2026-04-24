@@ -2,7 +2,7 @@ package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.config.SmsAsyncConfig;
-import com.backend.features.notification.constants.SmsConstants;
+import com.backend.features.notification.constants.NotificationConstants;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendSmsRequestDto;
@@ -133,7 +133,7 @@ public class NotificationServiceImpl implements NotificationService {
                         .dayDue(record.getDayDue())
                         .reportDate(reportDate)
                         .messageContent(messageContent)
-                        .status(SmsConstants.QueueStatus.PENDING)
+                        .status(NotificationConstants.QueueStatus.PENDING)
                         .retryCount(0)
                         .build();
 
@@ -150,7 +150,7 @@ public class NotificationServiceImpl implements NotificationService {
     private int[] processQueuedRecords(LocalDate reportDate) {
         try {
             List<SmsPendingQueue> pendingRecords = smsPendingQueueRepository
-                    .findByStatusAndReportDate(SmsConstants.QueueStatus.PENDING, reportDate);
+                    .findByStatusAndReportDate(NotificationConstants.QueueStatus.PENDING, reportDate);
 
             if (pendingRecords.isEmpty()) {
                 return new int[]{0, 0};
@@ -222,15 +222,15 @@ public class NotificationServiceImpl implements NotificationService {
                 }
 
                 sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
-                updateQueueStatus(queueRecord, SmsConstants.QueueStatus.SUCCESS, null);
+                updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
                 success++;
-                logToPostgresSQL(queueRecord, SmsConstants.SmsStatus.SUCCESS, messageContent);
+                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
 
             } catch (Exception e) {
                 failure++;
                 log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
-                updateQueueStatus(queueRecord, SmsConstants.QueueStatus.FAILURE, e.getMessage());
-                logToPostgresSQL(queueRecord, SmsConstants.SmsStatus.FAILURE, messageContent);
+                updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, e.getMessage());
+                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
             }
         }
 
@@ -322,7 +322,7 @@ public class NotificationServiceImpl implements NotificationService {
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
         if ("local".equals(activeProfile)) {
             log.info("SMS dispatch (LOCAL): {} | Message: {}", phoneNumber, messageContent);
-            return SmsConstants.SmsStatus.SUCCESS;
+            return NotificationConstants.NotificationStatus.SUCCESS;
         }
 
 //        try {
@@ -387,13 +387,13 @@ public class NotificationServiceImpl implements NotificationService {
             SmsLog smsLog = SmsLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
-                    .smsStatus(SmsConstants.SmsStatus.SUCCESS)
+                    .smsStatus(NotificationConstants.NotificationStatus.SUCCESS)
                     .smsLogDate(LocalDateTime.now())
                     .build();
             smsLogRepository.save(smsLog);
 
             log.info("Test SMS delivered successfully");
-            return SmsConstants.SmsStatus.SUCCESS;
+            return NotificationConstants.NotificationStatus.SUCCESS;
 
         } catch (Exception e) {
             log.error("Test SMS delivery failed: {}", e.getMessage(), e);
@@ -401,7 +401,7 @@ public class NotificationServiceImpl implements NotificationService {
             SmsLog smsLog = SmsLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
-                    .smsStatus(SmsConstants.SmsStatus.FAILURE)
+                    .smsStatus(NotificationConstants.NotificationStatus.FAILURE)
                     .smsLogDate(LocalDateTime.now())
                     .build();
             smsLogRepository.save(smsLog);

@@ -1,15 +1,15 @@
 package com.backend.features.notification.constants;
 
-public final class SmsConstants {
+public final class NotificationConstants {
 
-    private SmsConstants() {
+    private NotificationConstants() {
     }
 
-    public static final class SmsStatus {
+    public static final class NotificationStatus {
         public static final String SUCCESS = "SUCCESS";
         public static final String FAILURE = "FAILURE";
 
-        private SmsStatus() {
+        private NotificationStatus() {
         }
     }
 
