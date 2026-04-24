@@ -15,20 +15,20 @@ public class CpbHelper {
 
     public String getContentDescription() {
         try (Connection con = OracleConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT SET_DESC FROM D_CBS_SETTING")) {
+             PreparedStatement ps = con.prepareStatement("SELECT SET_DESC FROM APPS.D_CBS_SETTING WHERE SET_CODE='SMS_LOAN_LATE'")) {
 
             ResultSet rs = ps.executeQuery();
             String description = "";
 
             if (rs.next()) {
                 description = rs.getString("SET_DESC");
-                log.info("SMS message content fetched from Oracle D_CBS_SETTING: {}", description);
+                log.info("SMS message content fetched from Oracle APPS.D_CBS_SETTING: {}", description);
             }
 
             return description.isEmpty() ? "Loan payment reminder" : description;
 
         } catch (SQLException e) {
-            log.error("Error fetching message content from D_CBS_SETTING: {}", e.getMessage(), e);
+            log.warn("Could not fetch from APPS.D_CBS_SETTING ({}), using default message. Ensure APPS.D_CBS_SETTING table exists with SET_CODE='SMS_LOAN_LATE' row.", e.getMessage());
             return "Loan payment reminder";
         }
     }
