@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loan_sms_log", indexes = {
-        @Index(name = "idx_phone_number", columnList = "phone_number"),
-        @Index(name = "idx_customer_id", columnList = "customer_id"),
-        @Index(name = "idx_sms_status", columnList = "sms_status"),
-        @Index(name = "idx_report_date", columnList = "report_date"),
+        @Index(name = "idx_sms_log_phone_number", columnList = "phone_number"),
+        @Index(name = "idx_sms_log_customer_id", columnList = "customer_id"),
+        @Index(name = "idx_sms_log_status", columnList = "sms_status"),
+        @Index(name = "idx_sms_log_report_date", columnList = "report_date"),
         @Index(name = "idx_sms_log_date", columnList = "sms_log_date"),
-        @Index(name = "idx_is_deleted", columnList = "is_deleted")
+        @Index(name = "idx_sms_log_is_deleted", columnList = "is_deleted")
 })
 @Data
 @NoArgsConstructor

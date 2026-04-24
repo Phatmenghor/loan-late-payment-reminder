@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "sms_processing_status", indexes = {
-        @Index(name = "idx_report_date", columnList = "report_date"),
-        @Index(name = "idx_is_complete", columnList = "is_complete")
+        @Index(name = "idx_processing_status_report_date", columnList = "report_date"),
+        @Index(name = "idx_processing_status_is_complete", columnList = "is_complete")
 })
 @Data
 @NoArgsConstructor
