@@ -33,7 +33,6 @@ public class OracleHelper {
                         .customerId(rs.getString("CUSTOMERID"))
                         .phoneNumber(rs.getString("MBAPP_PHONE"))
                         .arrangementId(rs.getString("ARRANGEMENT"))
-                        .dayDue(null)
                         .build();
                 records.add(record);
             }

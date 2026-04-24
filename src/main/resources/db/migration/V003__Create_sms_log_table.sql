@@ -1,12 +1,12 @@
--- Create notification_log table for SMS delivery audit trail
+-- Create notification_log table for notification delivery audit trail
 CREATE TABLE IF NOT EXISTS notification_log (
     id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     phone_number VARCHAR(20) NOT NULL,
     customer_id VARCHAR(100),
     report_date DATE,
     arrangement_id VARCHAR(100),
-    day_due INTEGER,
     message_content TEXT,
+    json_payload TEXT,
     notification_status VARCHAR(20) NOT NULL,
     notification_log_date TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

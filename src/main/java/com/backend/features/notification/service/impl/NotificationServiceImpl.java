@@ -126,13 +126,15 @@ public class NotificationServiceImpl implements NotificationService {
         try {
 
             for (LoanLateReminderDto record : records) {
+                String jsonPayload = payloadBuilder.buildJsonPayload(record.getPhoneNumber(), messageContent);
+
                 NotificationQueue queueRecord = NotificationQueue.builder()
                         .customerId(record.getCustomerId())
                         .phoneNumber(record.getPhoneNumber())
                         .arrangementId(record.getArrangementId())
-                        .dayDue(record.getDayDue())
                         .reportDate(reportDate)
                         .messageContent(messageContent)
+                        .jsonPayload(jsonPayload)
                         .status(NotificationConstants.QueueStatus.PENDING)
                         .retryCount(0)
                         .build();
@@ -360,8 +362,8 @@ public class NotificationServiceImpl implements NotificationService {
                     .customerId(queueRecord.getCustomerId())
                     .reportDate(queueRecord.getReportDate())
                     .arrangementId(queueRecord.getArrangementId())
-                    .dayDue(queueRecord.getDayDue())
                     .messageContent(messageContent)
+                    .jsonPayload(queueRecord.getJsonPayload())
                     .notificationStatus(status)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
@@ -378,11 +380,13 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("Test endpoint invoked for {}", request.getPhoneNumber());
 
         try {
+            String jsonPayload = payloadBuilder.buildJsonPayload(request.getPhoneNumber(), request.getMessageContent());
             sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
 
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
+                    .jsonPayload(jsonPayload)
                     .notificationStatus(NotificationConstants.NotificationStatus.SUCCESS)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
@@ -394,9 +398,11 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception e) {
             log.error("Test SMS delivery failed: {}", e.getMessage(), e);
 
+            String jsonPayload = payloadBuilder.buildJsonPayload(request.getPhoneNumber(), request.getMessageContent());
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
+                    .jsonPayload(jsonPayload)
                     .notificationStatus(NotificationConstants.NotificationStatus.FAILURE)
                     .notificationLogDate(LocalDateTime.now())
                     .build();

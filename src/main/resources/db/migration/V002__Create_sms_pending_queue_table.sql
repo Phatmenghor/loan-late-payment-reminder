@@ -1,12 +1,12 @@
--- Create notification_queue table for SMS notification processing
+-- Create notification_queue table for notification processing
 CREATE TABLE IF NOT EXISTS notification_queue (
     id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id VARCHAR(100) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     arrangement_id VARCHAR(100),
-    day_due INTEGER,
     report_date DATE NOT NULL,
     message_content TEXT,
+    json_payload TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,

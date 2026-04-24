@@ -17,5 +17,4 @@ public class LoanLateReminderDto {
     private String customerId;
     private String phoneNumber;
     private String arrangementId;
-    private Integer dayDue;
 }

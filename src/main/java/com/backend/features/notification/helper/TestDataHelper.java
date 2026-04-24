@@ -18,7 +18,6 @@ public class TestDataHelper {
                 .customerId("CUST001")
                 .phoneNumber("070411260")
                 .arrangementId("ARR001")
-                .dayDue(null)
                 .build());
 
         testRecords.add(LoanLateReminderDto.builder()
@@ -26,7 +25,6 @@ public class TestDataHelper {
                 .customerId("CUST002")
                 .phoneNumber("070411263424sdf0")
                 .arrangementId("ARR002")
-                .dayDue(null)
                 .build());
 
         return testRecords;

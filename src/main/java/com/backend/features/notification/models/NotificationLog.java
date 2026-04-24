@@ -35,11 +35,11 @@ public class NotificationLog extends BaseUUIDEntity {
     @Column(name = "arrangement_id")
     private String arrangementId;
 
-    @Column(name = "day_due")
-    private Integer dayDue;
-
     @Column(name = "message_content")
     private String messageContent;
+
+    @Column(name = "json_payload", columnDefinition = "TEXT")
+    private String jsonPayload;
 
     @Column(name = "notification_status", nullable = false)
     private String notificationStatus;

@@ -31,17 +31,17 @@ public class NotificationQueue extends BaseUUIDEntity {
     @Column(name = "arrangement_id")
     private String arrangementId;
 
-    @Column(name = "day_due")
-    private Integer dayDue;
-
     @Column(name = "report_date", nullable = false)
     private LocalDate reportDate;
 
     @Column(name = "message_content")
     private String messageContent;
 
+    @Column(name = "json_payload", columnDefinition = "TEXT")
+    private String jsonPayload;
+
     @Column(name = "status", nullable = false)
-    private String status; // PENDING, SUCCESS, FAILURE
+    private String status;
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
