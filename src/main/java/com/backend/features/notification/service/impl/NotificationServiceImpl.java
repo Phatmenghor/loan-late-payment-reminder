@@ -2,7 +2,7 @@ package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
 import com.backend.config.NotificationAsyncConfig;
-import com.backend.features.notification.constants.NotificationConstants;
+import com.backend.shared.constants.NotificationConstants;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendNotificationRequestDto;

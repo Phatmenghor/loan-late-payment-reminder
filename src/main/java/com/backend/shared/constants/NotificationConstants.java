@@ -1,4 +1,4 @@
-package com.backend.features.notification.constants;
+package com.backend.shared.constants;
 
 public final class NotificationConstants {
 
