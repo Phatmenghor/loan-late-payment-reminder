@@ -1,6 +1,6 @@
 # Oracle Database Setup Guide
 
-This application requires specific Oracle database objects to function. Follow this guide to set up your Oracle database correctly.
+This application requires one specific Oracle database object to function. Follow this guide to set up your Oracle database correctly.
 
 ## Required Oracle Objects
 
@@ -34,21 +34,14 @@ WHERE TRUNC(a.reportdate) >= TRUNC(SYSDATE) - 1
 ORDER BY a.reportdate DESC, a.customerid;
 ```
 
-### 2. TABLE: APPS.D_CBS_SETTING
+## PostgreSQL Configuration
 
-This table must contain SMS message configuration. It should have at least these columns:
-- `SET_CODE` (VARCHAR2, PRIMARY KEY) - Configuration code
-- `SET_DESC` (VARCHAR2) - Configuration value/description
+**SMS Message**: Configured in PostgreSQL `sms_config` table with default message already set:
+- Table: `sms_config`
+- Config Type: `SMS_LOAN_LATE`
+- Default Value: Khmer loan payment reminder message
 
-**Required record**:
-```sql
-INSERT INTO APPS.D_CBS_SETTING (SET_CODE, SET_DESC)
-VALUES ('SMS_LOAN_LATE', 'Loan payment reminder');
-
-COMMIT;
-```
-
-If the exact table structure is different, modify the INSERT to match your schema.
+The migration automatically creates this table and inserts the default message on first run. You can update the message without code changes by updating the `config_value` in the database.
 
 ## Verification
 

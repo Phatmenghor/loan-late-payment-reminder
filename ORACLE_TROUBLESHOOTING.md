@@ -60,60 +60,23 @@ SELECT
 FROM your_original_view;
 ```
 
-## Step 4: Check Settings Table
+## Step 4: Check PostgreSQL SMS Configuration
 
-Find where your SMS message is stored:
-
-```sql
--- Search for settings tables
-SELECT TABLE_NAME FROM ALL_TABLES WHERE TABLE_NAME LIKE '%SETTING%' OR TABLE_NAME LIKE '%CBS%';
-
--- Once found, check its structure
-DESC APPS.D_CBS_SETTING;
--- or if in different schema:
-DESC other_schema.D_CBS_SETTING;
-
--- Check if SMS_LOAN_LATE setting exists
-SELECT * FROM APPS.D_CBS_SETTING WHERE SET_CODE = 'SMS_LOAN_LATE';
-```
-
-If the table/setting doesn't exist:
+The SMS message is now stored in PostgreSQL, not Oracle. It's automatically created on first run:
 
 ```sql
--- Create the table if it doesn't exist
-CREATE TABLE APPS.D_CBS_SETTING (
-    SET_CODE VARCHAR2(50) PRIMARY KEY,
-    SET_DESC VARCHAR2(500),
-    CREATED_DATE DATE DEFAULT SYSDATE
-);
+-- Verify the SMS config exists
+SELECT * FROM sms_config WHERE config_type = 'SMS_LOAN_LATE';
 
--- Insert the SMS message setting
-INSERT INTO APPS.D_CBS_SETTING (SET_CODE, SET_DESC) 
-VALUES ('SMS_LOAN_LATE', 'Your loan payment is overdue. Please contact your bank.');
-COMMIT;
+-- Update the message if needed
+UPDATE sms_config 
+SET config_value = 'Your new SMS message here'
+WHERE config_type = 'SMS_LOAN_LATE';
 ```
 
 ## Step 5: Update Java Code if Schemas Differ
 
 If your objects are in different schemas than expected:
-
-### For CpbHelper.java:
-Change this line:
-```java
-PreparedStatement ps = con.prepareStatement("SELECT SET_DESC FROM APPS.D_CBS_SETTING WHERE SET_CODE='SMS_LOAN_LATE'")
-```
-
-To match your schema:
-```java
-// If APPS.D_CBS_SETTING
-// No change needed
-
-// If CFS.D_CBS_SETTING
-PreparedStatement ps = con.prepareStatement("SELECT SET_DESC FROM CFS.D_CBS_SETTING WHERE SET_CODE='SMS_LOAN_LATE'")
-
-// If in user schema (just D_CBS_SETTING)
-PreparedStatement ps = con.prepareStatement("SELECT SET_DESC FROM D_CBS_SETTING WHERE SET_CODE='SMS_LOAN_LATE'")
-```
 
 ### For OracleHelper.java:
 Change this line:
