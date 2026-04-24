@@ -1,10 +1,10 @@
 package com.backend.features.notification.helper;
 
 import com.backend.config.DataSourceConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -15,7 +15,7 @@ import java.sql.SQLException;
 @Slf4j
 public class OracleConnection {
 
-    private static DataSource oracleDataSource;
+    private DataSource oracleDataSource;
     private final DataSourceConfig.OracleDataSourceProperties oracleProps;
 
     public OracleConnection(DataSourceConfig.OracleDataSourceProperties oracleProps) {
@@ -23,25 +23,39 @@ public class OracleConnection {
     }
 
     @PostConstruct
-    public void initialize() {
+    public synchronized void initialize() {
         if (!oracleProps.isEnabled()) {
             log.warn("Oracle datasource is disabled");
             return;
         }
-        if (oracleDataSource == null) {
-            log.info("Configuring SECONDARY datasource: Oracle");
-            oracleDataSource = DataSourceBuilder.create()
-                    .url(oracleProps.getUrl())
-                    .username(oracleProps.getUsername())
-                    .password(oracleProps.getPassword())
-                    .driverClassName(oracleProps.getDriverClassName())
-                    .build();
+
+        if (oracleDataSource != null) {
+            log.debug("Oracle datasource already initialized");
+            return;
         }
+
+        log.info("Configuring SECONDARY datasource: Oracle");
+        HikariDataSource hikariDataSource = DataSourceBuilder.create()
+                .type(HikariDataSource.class)
+                .url(oracleProps.getUrl())
+                .username(oracleProps.getUsername())
+                .password(oracleProps.getPassword())
+                .driverClassName(oracleProps.getDriverClassName())
+                .build();
+
+        hikariDataSource.setMaximumPoolSize(oracleProps.getMaximumPoolSize());
+        hikariDataSource.setMinimumIdle(oracleProps.getMinimumIdle());
+        hikariDataSource.setConnectionTimeout(oracleProps.getConnectionTimeout());
+        hikariDataSource.setIdleTimeout(oracleProps.getIdleTimeout());
+        hikariDataSource.setPoolName("OracleHikariPool");
+
+        this.oracleDataSource = hikariDataSource;
+        log.info("Oracle datasource initialized with HikariCP pool");
     }
 
-    public static Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         if (oracleDataSource == null) {
-            throw new SQLException("Oracle DataSource is not initialized");
+            throw new SQLException("Oracle DataSource is not initialized. Check datasource.oracle.enabled setting");
         }
         return oracleDataSource.getConnection();
     }

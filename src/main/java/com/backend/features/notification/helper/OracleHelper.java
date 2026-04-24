@@ -1,6 +1,7 @@
 package com.backend.features.notification.helper;
 
 import com.backend.features.notification.dto.LoanLateReminderDto;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -12,14 +13,17 @@ import java.util.List;
 import java.util.Locale;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class OracleHelper {
+
+    private final OracleConnection oracleConnection;
 
     public List<LoanLateReminderDto> selectLoanLateReminderRecords() {
         List<LoanLateReminderDto> records = new ArrayList<>();
         String query = "SELECT * FROM VIEW_LOAN_LATE_REMINDER";
 
-        try (Connection con = OracleConnection.getConnection();
+        try (Connection con = oracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
 
             ResultSet rs = ps.executeQuery();
