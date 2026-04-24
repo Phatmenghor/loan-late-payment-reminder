@@ -173,8 +173,6 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    public int[] processBatchAsync(List<NotificationQueue> records, String messageContent) {
-
     private int[] processBatchAsync(List<NotificationQueue> records, String messageContent) {
         int batchSize = notificationAsyncConfig.getBatchSize();
         AtomicInteger successCount = new AtomicInteger(0);

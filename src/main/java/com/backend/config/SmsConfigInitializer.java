@@ -1,7 +1,7 @@
 package com.backend.config;
 
-import com.backend.features.notification.models.SmsConfig;
-import com.backend.features.notification.repository.SmsConfigRepository;
+import com.backend.features.notification.models.NotificationConfig;
+import com.backend.features.notification.repository.NotificationConfigRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -12,27 +12,27 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class SmsConfigInitializer implements CommandLineRunner {
 
-    private final SmsConfigRepository smsConfigRepository;
+    private final NotificationConfigRepository notificationConfigRepository;
 
     @Override
     public void run(String... args) throws Exception {
-        initializeSmsConfigs();
+        initializeNotificationConfigs();
     }
 
-    private void initializeSmsConfigs() {
-        String smsLoanLateType = "SMS_LOAN_LATE";
+    private void initializeNotificationConfigs() {
+        String notificationLoanLateType = "NOTIFICATION_LOAN_LATE";
 
-        if (smsConfigRepository.findByConfigType(smsLoanLateType).isEmpty()) {
+        if (notificationConfigRepository.findByConfigType(notificationLoanLateType).isEmpty()) {
             String khmerMessage = "ធនាគារប្រៃសណីយ៍កម្ពុជា ក.អ សូមស្វាគមន៍! សូមលោកអ្នកអញ្ជើញមកបង់ប្រាក់ឲ្យបានទាន់ពេលតាមតារាងសងប្រាក់របស់លោកអ្នក។ សូមអរគុណ 070 200 002";
 
-            SmsConfig smsConfig = SmsConfig.builder()
-                    .configType(smsLoanLateType)
+            NotificationConfig notificationConfig = NotificationConfig.builder()
+                    .configType(notificationLoanLateType)
                     .configValue(khmerMessage)
                     .isActive(true)
                     .build();
 
-            smsConfigRepository.save(smsConfig);
-            log.info("Initialized SMS_LOAN_LATE configuration");
+            notificationConfigRepository.save(notificationConfig);
+            log.info("Initialized NOTIFICATION_LOAN_LATE configuration");
         }
     }
 }
