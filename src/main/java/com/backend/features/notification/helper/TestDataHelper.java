@@ -23,7 +23,7 @@ public class TestDataHelper {
         testRecords.add(LoanLateReminderDto.builder()
                 .reportDate(LocalDate.now().minusDays(1))
                 .customerId("CUST002")
-                .phoneNumber("070411263424sdf0")
+                .phoneNumber("070411260")
                 .arrangementId("ARR002")
                 .build());
 
