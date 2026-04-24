@@ -323,36 +323,34 @@ public class NotificationServiceImpl implements NotificationService {
             return NotificationConstants.NotificationStatus.SUCCESS;
         }
 
-//        try {
-//            String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
-//            String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
-//
-//            log.info("SMS API call: POST {} | Phone: {} | Content: {}", apiUrl, phoneNumber, messageContent);
-//
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.setContentType(MediaType.APPLICATION_JSON);
-//            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
-//
-//            ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
-//                    apiUrl,
-//                    request,
-//                    ReceptionFormatDto.class
-//            );
-//
-//            if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
-//                log.info("SMS API response: {} | Status: {}", phoneNumber, apiResponse.getBody().getDesc());
-//                return apiResponse.getBody().getDesc();
-//            }
-//
-//            log.warn("SMS API empty response: {}", phoneNumber);
-//            return SMS_STATUS_FAILURE;
-//
-//        } catch (RestClientException e) {
-//            log.error("SMS API call failed: {} | Error: {}", phoneNumber, e.getMessage(), e);
-//            throw e;
-//        }
+        try {
+            String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
+            String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
 
-        return phoneNumber;
+            log.info("SMS API call: POST {} | Phone: {} | Content: {}", apiUrl, phoneNumber, messageContent);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
+
+            ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
+                    apiUrl,
+                    request,
+                    ReceptionFormatDto.class
+            );
+
+            if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
+                log.info("SMS API response: {} | Status: {}", phoneNumber, apiResponse.getBody().getDesc());
+                return apiResponse.getBody().getDesc();
+            }
+
+            log.warn("SMS API empty response: {}", phoneNumber);
+            return NotificationConstants.NotificationStatus.FAILURE;
+
+        } catch (RestClientException e) {
+            log.error("SMS API call failed: {} | Error: {}", phoneNumber, e.getMessage(), e);
+            throw e;
+        }
     }
 
     private void logToPostgresSQL(NotificationQueue queueRecord, String status, String messageContent) {
