@@ -15,9 +15,7 @@ public class OracleHelper {
 
     public List<LoanLateReminderDto> selectLoanLateReminderRecords() {
         List<LoanLateReminderDto> records = new ArrayList<>();
-        String query = "SELECT reportdate, customerid, mbapp_phone, arrangement " +
-                "FROM stg.view_loan_late_reminder " +
-                "WHERE TRUNC(reportdate) >= TRUNC(SYSDATE - 1)";
+        String query = "SELECT * FROM VIEW_LOAN_LATE_REMINDER";
 
         try (Connection con = OracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
@@ -26,10 +24,10 @@ public class OracleHelper {
 
             while (rs.next()) {
                 LoanLateReminderDto record = LoanLateReminderDto.builder()
-                        .reportDate(rs.getDate("reportdate").toLocalDate())
-                        .customerId(rs.getString("customerid"))
-                        .phoneNumber(rs.getString("mbapp_phone"))
-                        .arrangementId(rs.getString("arrangement"))
+                        .reportDate(rs.getDate("REPORTDATE").toLocalDate())
+                        .customerId(rs.getString("CUSTOMERID"))
+                        .phoneNumber(rs.getString("MBAPP_PHONE"))
+                        .arrangementId(rs.getString("ARRANGEMENT"))
                         .dayDue(null)
                         .build();
                 records.add(record);
@@ -39,7 +37,7 @@ public class OracleHelper {
             return records;
 
         } catch (SQLException e) {
-            log.error("Oracle: Error fetching loan late reminder records from view | Error: {}. Verify stg.view_loan_late_reminder exists with columns: reportdate, customerid, mbapp_phone, arrangement", e.getMessage(), e);
+            log.error("Oracle: Error fetching loan late reminder records from view | Error: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to select loan late reminder records from Oracle", e);
         }
     }
