@@ -18,6 +18,7 @@ import com.backend.features.notification.repository.SmsLogRepository;
 import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -46,6 +47,9 @@ public class NotificationServiceImpl implements NotificationService {
     private static final String QUEUE_STATUS_PENDING = "PENDING";
     private static final String QUEUE_STATUS_SUCCESS = "SUCCESS";
     private static final String QUEUE_STATUS_FAILURE = "FAILURE";
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfile;
 
     private final RestTemplate restTemplate;
     private final NotificationPayloadBuilder payloadBuilder;
@@ -271,8 +275,40 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private void sendSmsToApi(String phoneNumber, String messageContent) {
-        log.info("SMS dispatch: {} | Message: {}", phoneNumber, messageContent);
+    private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
+        if ("local".equals(activeProfile)) {
+            log.info("SMS dispatch (LOCAL): {} | Message: {}", phoneNumber, messageContent);
+            return SMS_STATUS_SUCCESS;
+        }
+
+        try {
+            String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
+            String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
+
+            log.info("SMS API call: POST {} | Phone: {} | Content: {}", apiUrl, phoneNumber, messageContent);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
+
+            ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
+                    apiUrl,
+                    request,
+                    ReceptionFormatDto.class
+            );
+
+            if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
+                log.info("SMS API response: {} | Status: {}", phoneNumber, apiResponse.getBody().getDesc());
+                return apiResponse.getBody().getDesc();
+            }
+
+            log.warn("SMS API empty response: {}", phoneNumber);
+            return SMS_STATUS_FAILURE;
+
+        } catch (RestClientException e) {
+            log.error("SMS API call failed: {} | Error: {}", phoneNumber, e.getMessage(), e);
+            throw e;
+        }
     }
 
     private void logToPostgresSQL(SmsPendingQueue queueRecord, String status, String messageContent) {
