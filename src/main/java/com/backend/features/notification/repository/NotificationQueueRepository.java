@@ -27,6 +27,9 @@ public interface NotificationQueueRepository extends BaseRepository<Notification
     @Query("SELECT q FROM NotificationQueue q WHERE q.reportDate = :reportDate AND q.isDeleted = false")
     List<NotificationQueue> findByReportDate(@Param("reportDate") LocalDate reportDate);
 
+    @Query("SELECT q FROM NotificationQueue q WHERE q.reportDate = :reportDate AND (q.status = 'PENDING' OR q.status = 'FAILURE') AND q.isDeleted = false")
+    List<NotificationQueue> findPendingAndFailureByReportDate(@Param("reportDate") LocalDate reportDate);
+
     @Query("SELECT q FROM NotificationQueue q WHERE q.customerId = :customerId AND q.phoneNumber = :phoneNumber AND q.reportDate = :reportDate AND q.status = 'SUCCESS' AND q.isDeleted = false")
     Optional<NotificationQueue> findByCustomerIdAndPhoneAndDateAndSuccess(
             @Param("customerId") String customerId,

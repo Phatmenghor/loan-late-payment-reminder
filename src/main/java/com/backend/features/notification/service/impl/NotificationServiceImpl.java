@@ -151,20 +151,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     private int[] processQueuedRecords(LocalDate reportDate) {
         try {
-            List<NotificationQueue> allRecords = notificationQueueRepository.findByReportDate(reportDate);
-
-            if (allRecords.isEmpty()) {
-                return new int[]{0, 0};
-            }
-
-            List<NotificationQueue> recordsToProcess = new ArrayList<>();
-            for (NotificationQueue record : allRecords) {
-                String status = record.getStatus();
-                if (NotificationConstants.QueueStatus.PENDING.equals(status) ||
-                    NotificationConstants.QueueStatus.FAILURE.equals(status)) {
-                    recordsToProcess.add(record);
-                }
-            }
+            List<NotificationQueue> recordsToProcess = notificationQueueRepository
+                    .findPendingAndFailureByReportDate(reportDate);
 
             if (recordsToProcess.isEmpty()) {
                 log.info("No pending or failed records to process for {}", reportDate);
