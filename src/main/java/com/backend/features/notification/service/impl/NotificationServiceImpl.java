@@ -25,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
@@ -422,6 +423,24 @@ public class NotificationServiceImpl implements NotificationService {
 
         } catch (Exception e) {
             log.error("Scheduled processing error at {}: {}", timeLabel, e.getMessage(), e);
+        }
+    }
+
+    @Scheduled(cron = "0 0 2 * * *")
+    @Transactional
+    public void cleanupOldQueueRecords() {
+        try {
+            LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
+            int deletedCount = smsPendingQueueRepository.deleteSuccessfulRecordsOlderThan(twoDaysAgo);
+
+            if (deletedCount > 0) {
+                log.info("Queue cleanup: Deleted {} successful records older than 2 days", deletedCount);
+            } else {
+                log.debug("Queue cleanup: No old records to delete");
+            }
+
+        } catch (Exception e) {
+            log.error("Queue cleanup failed: {}", e.getMessage(), e);
         }
     }
 }

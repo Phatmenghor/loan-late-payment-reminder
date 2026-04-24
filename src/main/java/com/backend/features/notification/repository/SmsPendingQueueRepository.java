@@ -55,4 +55,12 @@ public interface SmsPendingQueueRepository extends BaseRepository<SmsPendingQueu
             @Param("status") String status,
             @Param("processedAt") LocalDateTime processedAt,
             @Param("failureReason") String failureReason);
+
+    @Modifying
+    @Transactional
+    @Query(value = """
+            DELETE FROM sms_pending_queue
+            WHERE status = 'SUCCESS' AND created_at < :twoDaysAgo AND is_deleted = false
+            """, nativeQuery = true)
+    int deleteSuccessfulRecordsOlderThan(@Param("twoDaysAgo") LocalDateTime twoDaysAgo);
 }
