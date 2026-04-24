@@ -1,35 +1,33 @@
 package com.backend.features.notification.helper;
 
-import com.backend.features.notification.helper.OracleConnection;
+import com.backend.features.notification.repository.SmsConfigRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class CpbHelper {
 
+    private final SmsConfigRepository smsConfigRepository;
+    private static final String DEFAULT_MESSAGE = "Loan payment reminder";
+
     public String getContentDescription() {
-        try (Connection con = OracleConnection.getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT SET_DESC FROM APPS.D_CBS_SETTING WHERE SET_CODE='SMS_LOAN_LATE'")) {
-
-            ResultSet rs = ps.executeQuery();
-            String description = "";
-
-            if (rs.next()) {
-                description = rs.getString("SET_DESC");
-                log.info("SMS message content fetched from Oracle APPS.D_CBS_SETTING: {}", description);
-            }
-
-            return description.isEmpty() ? "Loan payment reminder" : description;
-
-        } catch (SQLException e) {
-            log.warn("Could not fetch from APPS.D_CBS_SETTING ({}), using default message. Ensure APPS.D_CBS_SETTING table exists with SET_CODE='SMS_LOAN_LATE' row.", e.getMessage());
-            return "Loan payment reminder";
+        try {
+            return smsConfigRepository
+                    .findActiveByConfigType("SMS_LOAN_LATE")
+                    .map(config -> {
+                        log.info("SMS message content loaded from PostgreSQL");
+                        return config.getConfigValue();
+                    })
+                    .orElseGet(() -> {
+                        log.warn("SMS_LOAN_LATE config not found in database, using default message");
+                        return DEFAULT_MESSAGE;
+                    });
+        } catch (Exception e) {
+            log.error("Error fetching SMS message content from database: {}", e.getMessage(), e);
+            return DEFAULT_MESSAGE;
         }
     }
 }
