@@ -24,6 +24,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
@@ -175,27 +176,36 @@ public class NotificationServiceImpl implements NotificationService {
         int batchSize = smsAsyncConfig.getBatchSize();
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failureCount = new AtomicInteger(0);
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-
+        List<CompletableFuture<int[]>> futures = new ArrayList<>();
 
         for (int i = 0; i < records.size(); i += batchSize) {
             int endIndex = Math.min(i + batchSize, records.size());
             List<SmsPendingQueue> batch = records.subList(i, endIndex);
 
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                processSingleBatch(batch, messageContent, successCount, failureCount);
-            });
-
+            CompletableFuture<int[]> future = processSingleBatchAsync(batch, messageContent);
             futures.add(future);
         }
 
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-        allFutures.join();
+        for (CompletableFuture<int[]> future : futures) {
+            try {
+                int[] counts = future.get();
+                successCount.addAndGet(counts[0]);
+                failureCount.addAndGet(counts[1]);
+            } catch (Exception e) {
+                log.error("Async batch processing error: {}", e.getMessage(), e);
+                failureCount.incrementAndGet();
+            }
+        }
 
         return new int[]{successCount.get(), failureCount.get()};
     }
 
-    private void processSingleBatch(List<SmsPendingQueue> batch, String messageContent, AtomicInteger successCount, AtomicInteger failureCount) {
+    @Async("smsExecutor")
+    @Transactional
+    public CompletableFuture<int[]> processSingleBatchAsync(List<SmsPendingQueue> batch, String messageContent) {
+        int success = 0;
+        int failure = 0;
+
         for (SmsPendingQueue queueRecord : batch) {
             try {
                 Optional<SmsPendingQueue> existingSuccess = smsPendingQueueRepository
@@ -210,17 +220,20 @@ public class NotificationServiceImpl implements NotificationService {
 
                 sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
                 updateQueueStatus(queueRecord, QUEUE_STATUS_SUCCESS, null);
-                successCount.incrementAndGet();
+                success++;
                 logToPostgresSQL(queueRecord, SMS_STATUS_SUCCESS, messageContent);
 
             } catch (Exception e) {
-                failureCount.incrementAndGet();
+                failure++;
                 log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
                 updateQueueStatus(queueRecord, QUEUE_STATUS_FAILURE, e.getMessage());
                 logToPostgresSQL(queueRecord, SMS_STATUS_FAILURE, messageContent);
             }
         }
+
+        return CompletableFuture.completedFuture(new int[]{success, failure});
     }
+
 
     private void updateQueueStatus(SmsPendingQueue queueRecord, String status, String failureReason) {
         int maxRetries = 3;
