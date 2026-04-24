@@ -328,10 +328,10 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private String sendSmsToApi(String phoneNumber, String messageContent) {
-        if ("local".equals(activeProfile)) {
-            log.info("SMS dispatch (LOCAL): Phone: {} | Message: {}", phoneNumber, messageContent);
-            return NotificationConstants.NotificationStatus.SUCCESS;
-        }
+//        if ("local".equals(activeProfile)) {
+//            log.info("SMS dispatch (LOCAL): Phone: {} | Message: {}", phoneNumber, messageContent);
+//            return NotificationConstants.NotificationStatus.SUCCESS;
+//        }
 
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
