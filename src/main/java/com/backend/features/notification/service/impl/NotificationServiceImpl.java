@@ -2,6 +2,7 @@ package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
 import com.backend.features.notification.config.SmsAsyncConfig;
+import com.backend.features.notification.constants.SmsConstants;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendSmsRequestDto;
@@ -9,6 +10,7 @@ import com.backend.features.notification.enums.ProcessingResult;
 import com.backend.features.notification.helper.CpbHelper;
 import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
+import com.backend.features.notification.helper.TestDataHelper;
 import com.backend.features.notification.models.ProcessingStatus;
 import com.backend.features.notification.models.SmsPendingQueue;
 import com.backend.features.notification.models.SmsLog;
@@ -45,11 +47,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Transactional
 public class NotificationServiceImpl implements NotificationService {
 
-    private static final String SMS_STATUS_SUCCESS = "SUCCESS";
-    private static final String SMS_STATUS_FAILURE = "FAILURE";
-    private static final String QUEUE_STATUS_PENDING = "PENDING";
-    private static final String QUEUE_STATUS_SUCCESS = "SUCCESS";
-    private static final String QUEUE_STATUS_FAILURE = "FAILURE";
 
     @Value("${spring.profiles.active:}")
     private String activeProfile;
@@ -58,6 +55,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationPayloadBuilder payloadBuilder;
     private final CpbApiConfig cpbApiConfig;
     private final OracleHelper oracleHelper;
+    private final TestDataHelper testDataHelper;
     private final SmsLogRepository smsLogRepository;
     private final ProcessingStatusRepository processingStatusRepository;
     private final SmsPendingQueueRepository smsPendingQueueRepository;
@@ -83,10 +81,12 @@ public class NotificationServiceImpl implements NotificationService {
 
             List<SmsPendingQueue> existingQueue = smsPendingQueueRepository.findByReportDate(reportDate);
             if (existingQueue.isEmpty()) {
-                log.info("Queue empty for {}, fetching from Oracle View", reportDate);
+                log.info("Queue empty for {}, fetching records", reportDate);
 
                 String messageContent = cpbHelper.getContentDescription();
-                List<LoanLateReminderDto> records = oracleHelper.selectLoanLateReminderRecords();
+                List<LoanLateReminderDto> records = "local".equals(activeProfile) ?
+                        testDataHelper.getTestLoanReminders() :
+                        oracleHelper.selectLoanLateReminderRecords();
 
                 if (records.isEmpty()) {
                     log.warn("View returned no records - COB processing may still be in progress");
@@ -133,7 +133,7 @@ public class NotificationServiceImpl implements NotificationService {
                         .dayDue(record.getDayDue())
                         .reportDate(reportDate)
                         .messageContent(messageContent)
-                        .status(QUEUE_STATUS_PENDING)
+                        .status(SmsConstants.QueueStatus.PENDING)
                         .retryCount(0)
                         .build();
 
@@ -150,7 +150,7 @@ public class NotificationServiceImpl implements NotificationService {
     private int[] processQueuedRecords(LocalDate reportDate) {
         try {
             List<SmsPendingQueue> pendingRecords = smsPendingQueueRepository
-                    .findByStatusAndReportDate(QUEUE_STATUS_PENDING, reportDate);
+                    .findByStatusAndReportDate(SmsConstants.QueueStatus.PENDING, reportDate);
 
             if (pendingRecords.isEmpty()) {
                 return new int[]{0, 0};
@@ -172,6 +172,8 @@ public class NotificationServiceImpl implements NotificationService {
             return new int[]{0, 0};
         }
     }
+
+    public int[] processBatchAsync(List<SmsPendingQueue> records, String messageContent) {
 
     private int[] processBatchAsync(List<SmsPendingQueue> records, String messageContent) {
         int batchSize = smsAsyncConfig.getBatchSize();
@@ -220,15 +222,15 @@ public class NotificationServiceImpl implements NotificationService {
                 }
 
                 sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
-                updateQueueStatus(queueRecord, QUEUE_STATUS_SUCCESS, null);
+                updateQueueStatus(queueRecord, SmsConstants.QueueStatus.SUCCESS, null);
                 success++;
-                logToPostgresSQL(queueRecord, SMS_STATUS_SUCCESS, messageContent);
+                logToPostgresSQL(queueRecord, SmsConstants.SmsStatus.SUCCESS, messageContent);
 
             } catch (Exception e) {
                 failure++;
                 log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
-                updateQueueStatus(queueRecord, QUEUE_STATUS_FAILURE, e.getMessage());
-                logToPostgresSQL(queueRecord, SMS_STATUS_FAILURE, messageContent);
+                updateQueueStatus(queueRecord, SmsConstants.QueueStatus.FAILURE, e.getMessage());
+                logToPostgresSQL(queueRecord, SmsConstants.SmsStatus.FAILURE, messageContent);
             }
         }
 
@@ -320,7 +322,7 @@ public class NotificationServiceImpl implements NotificationService {
     private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
         if ("local".equals(activeProfile)) {
             log.info("SMS dispatch (LOCAL): {} | Message: {}", phoneNumber, messageContent);
-            return SMS_STATUS_SUCCESS;
+            return SmsConstants.SmsStatus.SUCCESS;
         }
 
 //        try {
@@ -385,13 +387,13 @@ public class NotificationServiceImpl implements NotificationService {
             SmsLog smsLog = SmsLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
-                    .smsStatus(SMS_STATUS_SUCCESS)
+                    .smsStatus(SmsConstants.SmsStatus.SUCCESS)
                     .smsLogDate(LocalDateTime.now())
                     .build();
             smsLogRepository.save(smsLog);
 
             log.info("Test SMS delivered successfully");
-            return SMS_STATUS_SUCCESS;
+            return SmsConstants.SmsStatus.SUCCESS;
 
         } catch (Exception e) {
             log.error("Test SMS delivery failed: {}", e.getMessage(), e);
@@ -399,7 +401,7 @@ public class NotificationServiceImpl implements NotificationService {
             SmsLog smsLog = SmsLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .messageContent(request.getMessageContent())
-                    .smsStatus(SMS_STATUS_FAILURE)
+                    .smsStatus(SmsConstants.SmsStatus.FAILURE)
                     .smsLogDate(LocalDateTime.now())
                     .build();
             smsLogRepository.save(smsLog);
