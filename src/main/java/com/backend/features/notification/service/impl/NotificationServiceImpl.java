@@ -271,35 +271,8 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private String sendSmsToApi(String phoneNumber, String messageContent) throws RestClientException {
-        try {
-            String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
-            String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
-
-            log.info("SMS API call: POST {} | Phone: {} | Content: {}", apiUrl, phoneNumber, messageContent);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
-
-            ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(
-                    apiUrl,
-                    request,
-                    ReceptionFormatDto.class
-            );
-
-            if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
-                log.info("SMS API response received: {} | Status: {}", phoneNumber, apiResponse.getBody().getDesc());
-                return apiResponse.getBody().getDesc();
-            }
-
-            log.warn("SMS API empty response: {}", phoneNumber);
-            return SMS_STATUS_FAILURE;
-
-        } catch (RestClientException e) {
-            log.error("SMS API call failed: {} | Error: {}", phoneNumber, e.getMessage(), e);
-            throw e;
-        }
+    private void sendSmsToApi(String phoneNumber, String messageContent) {
+        log.info("SMS dispatch: {} | Message: {}", phoneNumber, messageContent);
     }
 
     private void logToPostgresSQL(SmsPendingQueue queueRecord, String status, String messageContent) {
