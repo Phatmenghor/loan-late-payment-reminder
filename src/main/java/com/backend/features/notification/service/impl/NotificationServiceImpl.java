@@ -276,6 +276,8 @@ public class NotificationServiceImpl implements NotificationService {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
 
+            log.info("SMS API call: POST {} | Phone: {} | Content: {}", apiUrl, phoneNumber, messageContent);
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
@@ -287,14 +289,15 @@ public class NotificationServiceImpl implements NotificationService {
             );
 
             if (apiResponse.getBody() != null && apiResponse.getBody().getDesc() != null) {
+                log.info("SMS API response received: {} | Status: {}", phoneNumber, apiResponse.getBody().getDesc());
                 return apiResponse.getBody().getDesc();
             }
 
-            log.warn("CPB API returned empty response body for {}", phoneNumber);
+            log.warn("SMS API empty response: {}", phoneNumber);
             return SMS_STATUS_FAILURE;
 
         } catch (RestClientException e) {
-            log.error("CPB API connection error for {}: {}", phoneNumber, e.getMessage(), e);
+            log.error("SMS API call failed: {} | Error: {}", phoneNumber, e.getMessage(), e);
             throw e;
         }
     }
