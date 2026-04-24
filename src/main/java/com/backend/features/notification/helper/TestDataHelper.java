@@ -16,7 +16,7 @@ public class TestDataHelper {
         testRecords.add(LoanLateReminderDto.builder()
                 .reportDate(LocalDate.now().minusDays(1))
                 .customerId("CUST001")
-                .phoneNumber("0901234567")
+                .phoneNumber("070411260")
                 .arrangementId("ARR001")
                 .dayDue(null)
                 .build());
@@ -24,7 +24,7 @@ public class TestDataHelper {
         testRecords.add(LoanLateReminderDto.builder()
                 .reportDate(LocalDate.now().minusDays(1))
                 .customerId("CUST002")
-                .phoneNumber("0987654321")
+                .phoneNumber("070411260")
                 .arrangementId("ARR002")
                 .dayDue(null)
                 .build());
