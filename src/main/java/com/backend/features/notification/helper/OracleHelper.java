@@ -24,7 +24,7 @@ public class OracleHelper {
 
             while (rs.next()) {
                 LoanLateReminderDto record = LoanLateReminderDto.builder()
-                        .reportDate(rs.getDate("REPORTDATE").toLocalDate())
+                        .reportDate(rs.getTimestamp("REPORTDATE").toLocalDateTime().toLocalDate())
                         .customerId(rs.getString("CUSTOMERID"))
                         .phoneNumber(rs.getString("MBAPP_PHONE"))
                         .arrangementId(rs.getString("ARRANGEMENT"))
