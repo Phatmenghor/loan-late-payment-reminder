@@ -353,8 +353,8 @@ public class NotificationServiceImpl implements NotificationService {
                 String code = body.getCode();
                 String desc = body.getDesc();
 
-                if (code != null && code.equals("0")) {
-                    log.info("SMS delivered successfully to {}: {}", phoneNumber, desc);
+                if (code != null && (code.equals("0") || code.equals("00"))) {
+                    log.info("SMS delivered successfully to {}: Code={}, Desc={}", phoneNumber, code, desc);
                     return NotificationConstants.NotificationStatus.SUCCESS;
                 }
 
