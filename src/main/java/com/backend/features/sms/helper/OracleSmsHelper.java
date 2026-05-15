@@ -44,8 +44,11 @@ public class OracleSmsHelper {
         }
     }
 
+    /**
+     * Update SMS_STATUS and SMS_LOG_DT (last updated timestamp)
+     */
     public void updateSmsStatus(String msgId, String status) {
-        String query = "UPDATE D_CBS_SMS_LOG SET SMS_STATUS = ? WHERE MSG_ID = ?";
+        String query = "UPDATE D_CBS_SMS_LOG SET SMS_STATUS = ?, SMS_LOG_DT = SYSDATE WHERE MSG_ID = ?";
 
         try (Connection con = oracleDwhConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
@@ -55,7 +58,7 @@ public class OracleSmsHelper {
 
             int rowsUpdated = ps.executeUpdate();
             if (rowsUpdated > 0) {
-                log.info("Oracle DWH: Updated SMS_STATUS to '{}' for MSG_ID: {}", status, msgId);
+                log.info("Oracle DWH: Updated SMS_STATUS to '{}' and SMS_LOG_DT for MSG_ID: {}", status, msgId);
             } else {
                 log.warn("Oracle DWH: No records updated for MSG_ID: {}", msgId);
             }
