@@ -112,6 +112,37 @@ public class SmsServiceImpl implements SmsService {
     }
 
     @Override
+    public SendBatchSmsResponse startBatchProcessing() {
+        log.info("API: Initiating batch SMS processing");
+
+        try {
+            List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
+            int totalRecords = processingRecords.size();
+
+            log.info("Found {} PROCESSING SMS records from Oracle", totalRecords);
+
+            batchProcessingStatusService.startProcessing(totalRecords);
+            processSms();
+
+            return SendBatchSmsResponse.builder()
+                    .totalProcessed(totalRecords)
+                    .successCount(0)
+                    .failureCount(0)
+                    .message("SMS batch processing started. Total: " + totalRecords + " records")
+                    .build();
+        } catch (Exception e) {
+            log.error("Failed to start batch processing", e);
+            batchProcessingStatusService.failProcessing(e.getMessage());
+            return SendBatchSmsResponse.builder()
+                    .totalProcessed(0)
+                    .successCount(0)
+                    .failureCount(0)
+                    .message("Failed to start batch processing: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    @Override
     @Async
     @Transactional
     public CompletableFuture<SendBatchSmsResponse> processSms() {
@@ -125,9 +156,7 @@ public class SmsServiceImpl implements SmsService {
             log.info("Using SMS template: {}", smsConfig.getDescription());
 
             List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
-            log.info("Found {} PROCESSING SMS records from Oracle", processingRecords.size());
-
-            batchProcessingStatusService.startProcessing(processingRecords.size());
+            log.info("Processing {} PROCESSING SMS records from Oracle", processingRecords.size());
 
             int successCount = 0;
             int failureCount = 0;

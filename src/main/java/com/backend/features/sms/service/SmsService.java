@@ -11,6 +11,8 @@ public interface SmsService {
 
     SendSmsResponse sendSms(SendSmsRequest request);
 
+    SendBatchSmsResponse startBatchProcessing();
+
     @Async
     CompletableFuture<SendBatchSmsResponse> processSms();
 }
