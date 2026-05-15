@@ -40,7 +40,7 @@ cpb:
     username: ${AUTH_USERNAME:admin}
     password: ${AUTH_PASSWORD:admin123}
 
-# Oracle Database Configuration
+# Oracle Database Configuration (DWH)
 datasource:
   oracle:
     enabled: true
