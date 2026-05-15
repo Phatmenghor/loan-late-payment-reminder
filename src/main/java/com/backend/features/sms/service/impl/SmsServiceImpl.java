@@ -209,7 +209,15 @@ public class SmsServiceImpl implements SmsService {
             if (jsonPayload != null && jsonPayload.contains("\"rescode\":\"00\"")) {
                 return true;
             } else {
-                log.warn("SMS send failed - msgId: {}, phone: {}, response: {}", msgId, phone, jsonPayload);
+                String errorCode = "unknown";
+                if (jsonPayload != null && jsonPayload.contains("\"rescode\"")) {
+                    Matcher codeMatch = Pattern.compile("\"rescode\":\"(\\d+)\"").matcher(jsonPayload);
+                    if (codeMatch.find()) {
+                        errorCode = codeMatch.group(1);
+                    }
+                }
+                log.warn("SMS gateway error - msgId: {}, phone: {}, rescode: {}, response: {}",
+                        msgId, phone, errorCode, jsonPayload);
                 return false;
             }
 
