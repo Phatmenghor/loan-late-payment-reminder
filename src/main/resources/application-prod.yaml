@@ -1,10 +1,10 @@
 # Production Configuration
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:5050}
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:192.168.103.106}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
+    url: jdbc:postgresql://${DB_HOST:192.168.101.5}:${DB_PORT:5432}/${DB_NAME:loan_reminder}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:123cp!@#}
     driver-class-name: org.postgresql.Driver
@@ -65,9 +65,9 @@ datasource:
 
 # Mobile Banking Configuration
 mb:
-  otpUrl: ${MB_OTP_URL:http://192.168.103.11:15004/CPBBank/services/CPBMobile?wsdl}
-  registerCodeUrl: ${MB_REGISTER_CODE_URL:http://192.168.103.13:8090/API/RegisterCustomerMB/}
-  secretKey: ${MB_SECRET_KEY:mobilebankingCPB@#%123}
+  otpUrl: ${MB_OTP_URL:http://10.18.1.47:15004/CPBBank/services/CPBMobile?wsdl}
+  registerCodeUrl: ${MB_REGISTER_CODE_URL:http://10.18.1.48:8090/API/RegisterCustomerMB/}
+  secretKey: ${MB_SECRET_KEY:cpbsmsgw@!@#974203}
 
 logging:
   level:
