@@ -16,8 +16,11 @@ import com.backend.features.sms.service.SmsService;
 import com.backend.shared.utils.HttpClientUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.CompletableFuture;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -107,72 +110,78 @@ public class SmsServiceImpl implements SmsService {
     }
 
     @Override
+    @Async
     @Transactional
-    public SendBatchSmsResponse processSms() {
-        log.info("Starting batch SMS processing from Oracle D_CBS_SMS_LOG");
+    public CompletableFuture<SendBatchSmsResponse> processSms() {
+        log.info("Starting async batch SMS processing from Oracle D_CBS_SMS_LOG");
 
-        NotificationConfig smsConfig = notificationConfigRepository.findActiveByConfigType(SMS_CONFIG_TYPE)
-                .orElseThrow(() -> new RuntimeException("SMS configuration not found"));
+        try {
+            NotificationConfig smsConfig = notificationConfigRepository.findActiveByConfigType(SMS_CONFIG_TYPE)
+                    .orElseThrow(() -> new RuntimeException("SMS configuration not found"));
 
-        String smsMessage = smsConfig.getConfigValue();
-        log.info("Using SMS template: {}", smsConfig.getDescription());
+            String smsMessage = smsConfig.getConfigValue();
+            log.info("Using SMS template: {}", smsConfig.getDescription());
 
-        List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
-        log.info("Found {} PROCESSING SMS records from Oracle", processingRecords.size());
+            List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
+            log.info("Found {} PROCESSING SMS records from Oracle", processingRecords.size());
 
-        int successCount = 0;
-        int failureCount = 0;
+            int successCount = 0;
+            int failureCount = 0;
 
-        for (OracleSmsDto record : processingRecords) {
-            String requestId = String.valueOf(System.currentTimeMillis());
-            try {
-                // Validate phone number
-                if (!phoneValidator.isValidPhone(record.getPhone())) {
-                    String errorMsg = phoneValidator.getErrorMessage(record.getPhone());
-                    log.error("Invalid phone number - msgId: {}, requestId: {}, phone: {}",
-                            record.getMsgId(), requestId, record.getPhone());
+            for (OracleSmsDto record : processingRecords) {
+                String requestId = String.valueOf(System.currentTimeMillis());
+                try {
+                    // Validate phone number
+                    if (!phoneValidator.isValidPhone(record.getPhone())) {
+                        String errorMsg = phoneValidator.getErrorMessage(record.getPhone());
+                        log.error("Invalid phone number - msgId: {}, requestId: {}, phone: {}",
+                                record.getMsgId(), requestId, record.getPhone());
+                        oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
+                        logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, errorMsg);
+                        failureCount++;
+                        continue;
+                    }
+
+                    // Format phone number
+                    String formattedPhone = phoneValidator.formatPhoneNumber(record.getPhone());
+                    log.debug("Formatted phone number: {} -> {}", record.getPhone(), formattedPhone);
+
+                    boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
+                    if (success) {
+                        oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
+                        logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.SUCCESS, null);
+                        log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}",
+                                record.getMsgId(), requestId, formattedPhone);
+                        successCount++;
+                    } else {
+                        oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
+                        logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.ERROR, "SOAP response error");
+                        log.warn("SMS send failed - msgId: {}, requestId: {}, phone: {}",
+                                record.getMsgId(), requestId, formattedPhone);
+                        failureCount++;
+                    }
+                } catch (Exception e) {
+                    log.error("Error sending SMS - msgId: {}, requestId: {}, phone: {}",
+                            record.getMsgId(), requestId, record.getPhone(), e);
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, errorMsg);
-                    failureCount++;
-                    continue;
-                }
-
-                // Format phone number
-                String formattedPhone = phoneValidator.formatPhoneNumber(record.getPhone());
-                log.debug("Formatted phone number: {} -> {}", record.getPhone(), formattedPhone);
-
-                boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
-                if (success) {
-                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
-                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.SUCCESS, null);
-                    log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}",
-                            record.getMsgId(), requestId, formattedPhone);
-                    successCount++;
-                } else {
-                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.ERROR, "SOAP response error");
-                    log.warn("SMS send failed - msgId: {}, requestId: {}, phone: {}",
-                            record.getMsgId(), requestId, formattedPhone);
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, e.getMessage());
                     failureCount++;
                 }
-            } catch (Exception e) {
-                log.error("Error sending SMS - msgId: {}, requestId: {}, phone: {}",
-                        record.getMsgId(), requestId, record.getPhone(), e);
-                oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, e.getMessage());
-                failureCount++;
             }
+
+            int totalProcessed = processingRecords.size();
+            log.info("Batch SMS processing completed - Total: {}, Success: {}, Failure: {}", totalProcessed, successCount, failureCount);
+
+            return CompletableFuture.completedFuture(SendBatchSmsResponse.builder()
+                    .totalProcessed(totalProcessed)
+                    .successCount(successCount)
+                    .failureCount(failureCount)
+                    .message("SMS batch processing completed")
+                    .build());
+        } catch (Exception e) {
+            log.error("Batch SMS processing failed", e);
+            return CompletableFuture.failedFuture(e);
         }
-
-        int totalProcessed = processingRecords.size();
-        log.info("Batch SMS processing completed - Total: {}, Success: {}, Failure: {}", totalProcessed, successCount, failureCount);
-
-        return SendBatchSmsResponse.builder()
-                .totalProcessed(totalProcessed)
-                .successCount(successCount)
-                .failureCount(failureCount)
-                .message("SMS batch processing completed")
-                .build();
     }
 
     private boolean sendSoapSms(String phone, String message, String msgId) {

@@ -34,10 +34,19 @@ public class SmsController {
     }
 
     @PostMapping("/send")
-    @Operation(summary = "Process and Send Batch SMS", description = "Process PROCESSING records from Oracle D_CBS_SMS_LOG and send SMS via SOAP gateway")
-    public ResponseEntity<SendBatchSmsResponse> sendBatchSms() {
-        log.info("API: Processing batch SMS from Oracle D_CBS_SMS_LOG");
-        SendBatchSmsResponse response = smsService.processSms();
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    @Operation(summary = "Process and Send Batch SMS (Async - No Timeout)", description = "Asynchronously process PROCESSING records from Oracle D_CBS_SMS_LOG and send SMS via SOAP gateway. Supports up to 100,000+ records without timeout.")
+    public ResponseEntity<String> sendBatchSms() {
+        log.info("API: Processing batch SMS from Oracle D_CBS_SMS_LOG (async)");
+        smsService.processSms()
+                .thenApply(response -> {
+                    log.info("Batch SMS processing completed - Total: {}, Success: {}, Failure: {}",
+                            response.getTotalProcessed(), response.getSuccessCount(), response.getFailureCount());
+                    return response;
+                })
+                .exceptionally(e -> {
+                    log.error("Batch SMS processing failed: {}", e.getMessage(), e);
+                    return null;
+                });
+        return ResponseEntity.accepted().body("SMS batch processing started. Processing up to 100,000+ records in background. Check Oracle SMS_STATUS and sms_log table for results.");
     }
 }
