@@ -7,6 +7,7 @@ import com.backend.features.sms.dto.OracleSmsDto;
 import com.backend.features.sms.dto.SendBatchSmsResponse;
 import com.backend.features.sms.dto.SendSmsRequest;
 import com.backend.features.sms.dto.SendSmsResponse;
+import com.backend.features.sms.enums.SmsStatus;
 import com.backend.features.sms.helper.OracleSmsHelper;
 import com.backend.features.sms.helper.PhoneValidator;
 import com.backend.features.sms.models.SmsLog;
@@ -50,7 +51,7 @@ public class SmsServiceImpl implements SmsService {
         if (!phoneValidator.isValidPhone(phone)) {
             String errorMsg = phoneValidator.getErrorMessage(phone);
             log.error("Invalid phone number - requestId: {}, error: {}", requestId, errorMsg);
-            logSmsToPostgres(requestId, phone, content, "ERROR", errorMsg);
+            logSmsToPostgres(requestId, phone, content, SmsStatus.ERROR, errorMsg);
 
             return SendSmsResponse.builder()
                     .requestId(requestId)
@@ -69,7 +70,7 @@ public class SmsServiceImpl implements SmsService {
             boolean success = sendSoapSms(formattedPhone, content, requestId);
 
             if (success) {
-                logSmsToPostgres(requestId, formattedPhone, content, "SUCCESS", null);
+                logSmsToPostgres(requestId, formattedPhone, content, SmsStatus.SUCCESS, null);
                 log.info("SMS sent successfully - requestId: {}, phone: {}", requestId, formattedPhone);
 
                 return SendSmsResponse.builder()
@@ -79,7 +80,7 @@ public class SmsServiceImpl implements SmsService {
                         .sentAt(LocalDateTime.now())
                         .build();
             } else {
-                logSmsToPostgres(requestId, formattedPhone, content, "ERROR", "SOAP response error");
+                logSmsToPostgres(requestId, formattedPhone, content, SmsStatus.ERROR, "SOAP response error");
                 log.warn("SMS send failed - requestId: {}, phone: {}", requestId, formattedPhone);
 
                 return SendSmsResponse.builder()
@@ -93,7 +94,7 @@ public class SmsServiceImpl implements SmsService {
 
         } catch (Exception e) {
             log.error("Error sending SMS - requestId: {}, phone: {}", requestId, formattedPhone, e);
-            logSmsToPostgres(requestId, formattedPhone, content, "ERROR", e.getMessage());
+            logSmsToPostgres(requestId, formattedPhone, content, SmsStatus.ERROR, e.getMessage());
 
             return SendSmsResponse.builder()
                     .requestId(requestId)
@@ -131,7 +132,7 @@ public class SmsServiceImpl implements SmsService {
                     log.error("Invalid phone number - msgId: {}, requestId: {}, phone: {}",
                             record.getMsgId(), requestId, record.getPhone());
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", errorMsg);
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, errorMsg);
                     failureCount++;
                     continue;
                 }
@@ -143,13 +144,13 @@ public class SmsServiceImpl implements SmsService {
                 boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
                 if (success) {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
-                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, "SUCCESS", null);
+                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.SUCCESS, null);
                     log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}",
                             record.getMsgId(), requestId, formattedPhone);
                     successCount++;
                 } else {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, "ERROR", "SOAP response error");
+                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.ERROR, "SOAP response error");
                     log.warn("SMS send failed - msgId: {}, requestId: {}, phone: {}",
                             record.getMsgId(), requestId, formattedPhone);
                     failureCount++;
@@ -158,7 +159,7 @@ public class SmsServiceImpl implements SmsService {
                 log.error("Error sending SMS - msgId: {}, requestId: {}, phone: {}",
                         record.getMsgId(), requestId, record.getPhone(), e);
                 oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", e.getMessage());
+                logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, e.getMessage());
                 failureCount++;
             }
         }
@@ -222,7 +223,10 @@ public class SmsServiceImpl implements SmsService {
                 + "</soap:Envelope>";
     }
 
-    private void logSmsToPostgres(String msgId, String phone, String message, String status, String errorDetails) {
+    /**
+     * Log SMS to PostgreSQL audit table (never deleted - permanent history)
+     */
+    private void logSmsToPostgres(String msgId, String phone, String message, SmsStatus status, String errorDetails) {
         try {
             // Check if record already exists
             var existingSms = smsRepository.findByMsgId(msgId);
@@ -236,7 +240,7 @@ public class SmsServiceImpl implements SmsService {
                 smsLog.setErrorDetails(errorDetails);
                 smsLog.setSentAt(LocalDateTime.now());
                 smsRepository.save(smsLog);
-                log.debug("Updated SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status);
+                log.debug("Updated SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status.getValue());
             } else {
                 // Create new record
                 SmsLog smsLog = SmsLog.builder()
@@ -250,7 +254,7 @@ public class SmsServiceImpl implements SmsService {
                         .build();
 
                 smsRepository.save(smsLog);
-                log.debug("Created SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status);
+                log.debug("Created SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status.getValue());
             }
         } catch (Exception e) {
             log.error("Error logging SMS to PostgreSQL - msgId: {}, error: {}", msgId, e.getMessage(), e);

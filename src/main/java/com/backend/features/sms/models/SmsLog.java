@@ -1,11 +1,17 @@
 package com.backend.features.sms.models;
 
+import com.backend.features.sms.enums.SmsStatus;
 import com.backend.shared.domain.BaseUUIDEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * SMS Log - Audit trail for all SMS sending attempts
+ * This table is NEVER deleted - maintains complete history
+ * of all SMS operations for compliance and debugging
+ */
 @Entity
 @Table(name = "sms_log", indexes = {
         @Index(name = "idx_sms_log_msg_id", columnList = "msg_id"),
@@ -29,8 +35,9 @@ public class SmsLog extends BaseUUIDEntity {
     @Column(name = "sms_content", columnDefinition = "TEXT")
     private String smsContent;
 
-    @Column(name = "sms_status", nullable = false)
-    private String smsStatus;
+    @Column(name = "sms_status", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private SmsStatus smsStatus;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
