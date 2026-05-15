@@ -15,9 +15,13 @@ public class HttpClientUtil {
 
     public String postForString(String url, String body, String contentType) {
         try {
+            String contentTypeWithCharset = contentType;
+            if (!contentType.contains("charset")) {
+                contentTypeWithCharset = contentType + "; charset=UTF-8";
+            }
             return restClient.post()
                     .uri(url)
-                    .contentType(MediaType.valueOf(contentType))
+                    .contentType(MediaType.valueOf(contentTypeWithCharset))
                     .body(body)
                     .retrieve()
                     .body(String.class);
