@@ -5,6 +5,8 @@ import com.backend.features.notification.models.NotificationConfig;
 import com.backend.features.notification.repository.NotificationConfigRepository;
 import com.backend.features.sms_accepted.dto.OracleSmsDto;
 import com.backend.features.sms_accepted.dto.SendBatchSmsResponse;
+import com.backend.features.sms_accepted.dto.SendSmsRequest;
+import com.backend.features.sms_accepted.dto.SendSmsResponse;
 import com.backend.features.sms_accepted.helper.OracleSmsHelper;
 import com.backend.features.sms_accepted.models.SmsAcceptedLog;
 import com.backend.features.sms_accepted.repository.SmsAcceptedRepository;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +35,55 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
     private final HttpClientUtil httpClientUtil;
     private final OracleSmsHelper oracleSmsHelper;
     private final NotificationConfigRepository notificationConfigRepository;
+
+    @Override
+    @Transactional
+    public SendSmsResponse sendSms(SendSmsRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        String phone = request.getPhone();
+        String content = request.getContent();
+
+        log.info("Sending single SMS - requestId: {}, phone: {}", requestId, phone);
+
+        try {
+            boolean success = sendSoapSms(phone, content, requestId);
+
+            if (success) {
+                logSmsToPostgres(requestId, phone, content, "SUCCESS", null);
+                log.info("SMS sent successfully - requestId: {}, phone: {}", requestId, phone);
+
+                return SendSmsResponse.builder()
+                        .requestId(requestId)
+                        .phone(phone)
+                        .status("SUCCESS")
+                        .sentAt(LocalDateTime.now())
+                        .build();
+            } else {
+                logSmsToPostgres(requestId, phone, content, "ERROR", "SOAP response error");
+                log.warn("SMS send failed - requestId: {}, phone: {}", requestId, phone);
+
+                return SendSmsResponse.builder()
+                        .requestId(requestId)
+                        .phone(phone)
+                        .status("ERROR")
+                        .sentAt(LocalDateTime.now())
+                        .error("SOAP response error")
+                        .build();
+            }
+
+        } catch (Exception e) {
+            log.error("Error sending SMS - requestId: {}, phone: {}", requestId, phone, e);
+            logSmsToPostgres(requestId, phone, content, "ERROR", e.getMessage());
+
+            return SendSmsResponse.builder()
+                    .requestId(requestId)
+                    .phone(phone)
+                    .status("ERROR")
+                    .sentAt(LocalDateTime.now())
+                    .error(e.getMessage())
+                    .build();
+        }
+    }
 
     @Override
     @Transactional
