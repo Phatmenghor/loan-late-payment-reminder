@@ -1,8 +1,10 @@
 package com.backend.features.sms.controller;
 
+import com.backend.features.sms.dto.BatchProcessingStatus;
 import com.backend.features.sms.dto.SendBatchSmsResponse;
 import com.backend.features.sms.dto.SendSmsRequest;
 import com.backend.features.sms.dto.SendSmsResponse;
+import com.backend.features.sms.service.BatchProcessingStatusService;
 import com.backend.features.sms.service.SmsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,10 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/sms")
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SmsController {
 
     private final SmsService smsService;
+    private final BatchProcessingStatusService batchProcessingStatusService;
 
     @PostMapping("/send-single")
     @Operation(summary = "Send Single SMS", description = "Send a single SMS with phone number and content")
@@ -35,7 +35,7 @@ public class SmsController {
 
     @PostMapping("/send")
     @Operation(summary = "Process and Send Batch SMS (Async - No Timeout)", description = "Asynchronously process PROCESSING records from Oracle D_CBS_SMS_LOG and send SMS via SOAP gateway. Supports up to 100,000+ records without timeout.")
-    public ResponseEntity<String> sendBatchSms() {
+    public ResponseEntity<SendBatchSmsResponse> sendBatchSms() {
         log.info("API: Processing batch SMS from Oracle D_CBS_SMS_LOG (async)");
         smsService.processSms()
                 .thenApply(response -> {
@@ -47,6 +47,21 @@ public class SmsController {
                     log.error("Batch SMS processing failed: {}", e.getMessage(), e);
                     return null;
                 });
-        return ResponseEntity.accepted().body("SMS batch processing started. Processing up to 100,000+ records in background. Check Oracle SMS_STATUS and sms_log table for results.");
+
+        BatchProcessingStatus status = batchProcessingStatusService.getStatus();
+        return ResponseEntity.accepted().body(SendBatchSmsResponse.builder()
+                .totalProcessed(status.getTotalRecords())
+                .successCount(0)
+                .failureCount(0)
+                .message("SMS batch processing started")
+                .build());
+    }
+
+    @GetMapping("/status")
+    @Operation(summary = "Get Batch SMS Processing Status", description = "Check current progress of batch SMS processing including percentage complete, total sent, and success count")
+    public ResponseEntity<BatchProcessingStatus> getProcessingStatus() {
+        log.info("API: Checking batch SMS processing status");
+        BatchProcessingStatus status = batchProcessingStatusService.getStatus();
+        return ResponseEntity.ok(status);
     }
 }

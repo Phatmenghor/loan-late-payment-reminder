@@ -12,6 +12,7 @@ import com.backend.features.sms.helper.OracleSmsHelper;
 import com.backend.features.sms.helper.PhoneValidator;
 import com.backend.features.sms.models.SmsLog;
 import com.backend.features.sms.repository.SmsRepository;
+import com.backend.features.sms.service.BatchProcessingStatusService;
 import com.backend.features.sms.service.SmsService;
 import com.backend.shared.utils.HttpClientUtil;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class SmsServiceImpl implements SmsService {
     private final OracleSmsHelper oracleSmsHelper;
     private final NotificationConfigRepository notificationConfigRepository;
     private final PhoneValidator phoneValidator;
+    private final BatchProcessingStatusService batchProcessingStatusService;
 
     @Override
     @Transactional
@@ -125,6 +127,8 @@ public class SmsServiceImpl implements SmsService {
             List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
             log.info("Found {} PROCESSING SMS records from Oracle", processingRecords.size());
 
+            batchProcessingStatusService.startProcessing(processingRecords.size());
+
             int successCount = 0;
             int failureCount = 0;
 
@@ -138,6 +142,7 @@ public class SmsServiceImpl implements SmsService {
                                 record.getMsgId(), requestId, record.getPhone());
                         oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                         logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, errorMsg);
+                        batchProcessingStatusService.updateProgress(false);
                         failureCount++;
                         continue;
                     }
@@ -152,12 +157,14 @@ public class SmsServiceImpl implements SmsService {
                         logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.SUCCESS, null);
                         log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}",
                                 record.getMsgId(), requestId, formattedPhone);
+                        batchProcessingStatusService.updateProgress(true);
                         successCount++;
                     } else {
                         oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                         logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.ERROR, "SOAP response error");
                         log.warn("SMS send failed - msgId: {}, requestId: {}, phone: {}",
                                 record.getMsgId(), requestId, formattedPhone);
+                        batchProcessingStatusService.updateProgress(false);
                         failureCount++;
                     }
                 } catch (Exception e) {
@@ -165,12 +172,15 @@ public class SmsServiceImpl implements SmsService {
                             record.getMsgId(), requestId, record.getPhone(), e);
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                     logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, e.getMessage());
+                    batchProcessingStatusService.updateProgress(false);
                     failureCount++;
                 }
             }
 
             int totalProcessed = processingRecords.size();
             log.info("Batch SMS processing completed - Total: {}, Success: {}, Failure: {}", totalProcessed, successCount, failureCount);
+
+            batchProcessingStatusService.completeProcessing();
 
             return CompletableFuture.completedFuture(SendBatchSmsResponse.builder()
                     .totalProcessed(totalProcessed)
@@ -180,6 +190,7 @@ public class SmsServiceImpl implements SmsService {
                     .build());
         } catch (Exception e) {
             log.error("Batch SMS processing failed", e);
+            batchProcessingStatusService.failProcessing(e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
     }
