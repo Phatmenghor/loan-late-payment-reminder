@@ -67,7 +67,7 @@ datasource:
 mb:
   otpUrl: ${MB_OTP_URL:http://192.168.103.11:15004/CPBBank/services/CPBMobile?wsdl}
   registerCodeUrl: ${MB_REGISTER_CODE_URL:http://192.168.103.13:8090/API/RegisterCustomerMB/}
-  secretKey: ${MB_SECRET_KEY:mobilebankingCPB@#%123}
+  secretKey: ${MB_SECRET_KEY:cpbsmsgw@!@#974203}
 
 logging:
   level:
