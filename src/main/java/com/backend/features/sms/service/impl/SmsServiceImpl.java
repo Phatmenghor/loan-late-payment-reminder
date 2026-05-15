@@ -123,11 +123,13 @@ public class SmsServiceImpl implements SmsService {
         int failureCount = 0;
 
         for (OracleSmsDto record : processingRecords) {
+            String requestId = String.valueOf(System.currentTimeMillis());
             try {
                 // Validate phone number
                 if (!phoneValidator.isValidPhone(record.getPhone())) {
                     String errorMsg = phoneValidator.getErrorMessage(record.getPhone());
-                    log.error("Invalid phone number - msgId: {}, phone: {}", record.getMsgId(), record.getPhone());
+                    log.error("Invalid phone number - msgId: {}, requestId: {}, phone: {}",
+                            record.getMsgId(), requestId, record.getPhone());
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                     logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", errorMsg);
                     failureCount++;
@@ -142,16 +144,19 @@ public class SmsServiceImpl implements SmsService {
                 if (success) {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
                     logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, "SUCCESS", null);
-                    log.info("SMS sent successfully - msgId: {}, phone: {}", record.getMsgId(), formattedPhone);
+                    log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}",
+                            record.getMsgId(), requestId, formattedPhone);
                     successCount++;
                 } else {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                     logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, "ERROR", "SOAP response error");
-                    log.warn("SMS send failed - msgId: {}, phone: {}", record.getMsgId(), formattedPhone);
+                    log.warn("SMS send failed - msgId: {}, requestId: {}, phone: {}",
+                            record.getMsgId(), requestId, formattedPhone);
                     failureCount++;
                 }
             } catch (Exception e) {
-                log.error("Error sending SMS - msgId: {}, phone: {}", record.getMsgId(), record.getPhone(), e);
+                log.error("Error sending SMS - msgId: {}, requestId: {}, phone: {}",
+                        record.getMsgId(), requestId, record.getPhone(), e);
                 oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                 logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", e.getMessage());
                 failureCount++;
