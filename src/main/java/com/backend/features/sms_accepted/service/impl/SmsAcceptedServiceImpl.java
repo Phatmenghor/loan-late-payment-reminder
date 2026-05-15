@@ -2,10 +2,8 @@ package com.backend.features.sms_accepted.service.impl;
 
 import com.backend.config.MobileBankingConfig;
 import com.backend.features.sms_accepted.dto.OracleSmsDto;
-import com.backend.features.sms_accepted.dto.SendAcceptedSmsRequest;
-import com.backend.features.sms_accepted.dto.SendAcceptedSmsResponse;
+import com.backend.features.sms_accepted.dto.SendBatchSmsResponse;
 import com.backend.features.sms_accepted.helper.OracleSmsHelper;
-import com.backend.features.sms_accepted.mapper.SmsAcceptedMapper;
 import com.backend.features.sms_accepted.models.SmsAcceptedLog;
 import com.backend.features.sms_accepted.repository.SmsAcceptedRepository;
 import com.backend.features.sms_accepted.service.SmsAcceptedService;
@@ -26,110 +24,77 @@ import java.util.regex.Pattern;
 public class SmsAcceptedServiceImpl implements SmsAcceptedService {
 
     private final SmsAcceptedRepository smsAcceptedRepository;
-    private final SmsAcceptedMapper smsAcceptedMapper;
     private final MobileBankingConfig mobileBankingConfig;
     private final HttpClientUtil httpClientUtil;
     private final OracleSmsHelper oracleSmsHelper;
 
     @Override
     @Transactional
-    public SendAcceptedSmsResponse sendSms(SendAcceptedSmsRequest request) {
-        String msgId = request.getMsgId() != null ? request.getMsgId() : String.valueOf(System.currentTimeMillis());
-        String phone = request.getPhone();
-        String message = request.getMessage();
+    public SendBatchSmsResponse processSms() {
+        log.info("Starting batch SMS processing from Oracle D_CBS_SMS_LOG");
 
-        log.info("Processing SMS send request - msgId: {}, phone: {}", msgId, phone);
+        List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
+        log.info("Found {} PROCESSING SMS records from Oracle", processingRecords.size());
 
-        SmsAcceptedLog smsLog = SmsAcceptedLog.builder()
-                .msgId(msgId)
-                .phone(phone)
-                .smsContent(message)
-                .smsStatus("PROCESSING")
-                .createdAt(LocalDateTime.now())
-                .build();
+        int successCount = 0;
+        int failureCount = 0;
 
-        smsLog = smsAcceptedRepository.save(smsLog);
-        log.info("SMS log created - ID: {}, msgId: {}", smsLog.getId(), msgId);
-
-        try {
-            sendSoapSms(phone, message, msgId, smsLog);
-        } catch (Exception e) {
-            log.error("Error sending SMS via SOAP - phone: {}, msgId: {}", phone, msgId, e);
-            updateSmsStatus(smsLog.getId().toString(), "FAILURE", null, e.getMessage());
-        }
-
-        return smsAcceptedMapper.toSendAcceptedSmsResponse(smsLog);
-    }
-
-    @Override
-    @Transactional
-    public void processPendingSmsFromOracle() {
-        log.info("Starting processing pending SMS from Oracle VIEW_SMS");
-
-        try {
-            List<OracleSmsDto> pendingRecords = oracleSmsHelper.selectSmsPendingRecords();
-            log.info("Found {} pending SMS records from Oracle", pendingRecords.size());
-
-            for (OracleSmsDto record : pendingRecords) {
-                SendAcceptedSmsRequest request = SendAcceptedSmsRequest.builder()
-                        .msgId(record.getMsgId())
-                        .phone(record.getPhone())
-                        .message(record.getMessage())
-                        .build();
-
-                sendSms(request);
+        for (OracleSmsDto record : processingRecords) {
+            try {
+                boolean success = sendSoapSms(record.getPhone(), record.getMessage(), record.getMsgId());
+                if (success) {
+                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), record.getMessage(), "SUCCESS", null);
+                    successCount++;
+                } else {
+                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "FAILURE");
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), record.getMessage(), "FAILURE", "SOAP response error");
+                    failureCount++;
+                }
+            } catch (Exception e) {
+                log.error("Error sending SMS - msgId: {}, phone: {}", record.getMsgId(), record.getPhone(), e);
+                oracleSmsHelper.updateSmsStatus(record.getMsgId(), "FAILURE");
+                logSmsToPostgres(record.getMsgId(), record.getPhone(), record.getMessage(), "FAILURE", e.getMessage());
+                failureCount++;
             }
-
-            log.info("Completed processing {} SMS records from Oracle", pendingRecords.size());
-        } catch (Exception e) {
-            log.error("Error processing pending SMS from Oracle", e);
-            throw new RuntimeException("Failed to process pending SMS from Oracle", e);
         }
+
+        int totalProcessed = processingRecords.size();
+        log.info("Batch SMS processing completed - Total: {}, Success: {}, Failure: {}", totalProcessed, successCount, failureCount);
+
+        return SendBatchSmsResponse.builder()
+                .totalProcessed(totalProcessed)
+                .successCount(successCount)
+                .failureCount(failureCount)
+                .message("SMS batch processing completed")
+                .build();
     }
 
-    @Override
-    public SendAcceptedSmsResponse getStatus(String msgId) {
-        log.info("Fetching SMS status for msgId: {}", msgId);
-
-        return smsAcceptedRepository.findByMsgId(msgId)
-                .map(smsAcceptedMapper::toSendAcceptedSmsResponse)
-                .orElseThrow(() -> new RuntimeException("SMS record not found for msgId: " + msgId));
-    }
-
-    private void sendSoapSms(String phone, String message, String msgId, SmsAcceptedLog smsRecord) {
+    private boolean sendSoapSms(String phone, String message, String msgId) {
         String otpUrl = mobileBankingConfig.getOtpUrl();
         String secretKey = mobileBankingConfig.getSecretKey();
-        String requestID = msgId;
 
-        String soapXml = buildSoapRequest(requestID, phone, message, secretKey);
+        String soapXml = buildSoapRequest(msgId, phone, message, secretKey);
 
         try {
-            log.info("Sending SOAP SMS request - msgId: {}, phone: {}", msgId, phone);
+            log.info("Sending SOAP SMS - msgId: {}, phone: {}", msgId, phone);
 
             String responseXml = httpClientUtil.postForString(otpUrl, soapXml, "application/soap+xml");
 
             Matcher matcher = Pattern.compile("<(?:\\w+:)?return>(.*?)</(?:\\w+:)?return>").matcher(responseXml);
             String jsonPayload = matcher.find() ? matcher.group(1) : null;
 
-            log.info("SOAP SMS response received - msgId: {}", msgId);
-            if (jsonPayload != null) {
-                log.info("SOAP SMS payload - msgId: {}, payload: {}", msgId, jsonPayload);
-            }
-
             if (jsonPayload != null && jsonPayload.contains("\"rescode\":\"00\"")) {
                 log.info("SMS sent successfully - msgId: {}, phone: {}", msgId, phone);
-                updateSmsStatus(smsRecord.getId().toString(), "SUCCESS", "00", "SMS sent successfully");
-                oracleSmsHelper.updateSmsStatus(msgId, "SUCCESS");
+                return true;
             } else {
-                log.warn("SMS sending may have failed - msgId: {}, response: {}", msgId, jsonPayload);
-                updateSmsStatus(smsRecord.getId().toString(), "FAILURE", null, "SOAP response: " + jsonPayload);
-                oracleSmsHelper.updateSmsStatus(msgId, "FAILURE");
+                log.warn("SMS sending failed - msgId: {}, response: {}", msgId, jsonPayload);
+                return false;
             }
 
         } catch (Exception e) {
-            log.error("Failed to send SOAP SMS - msgId: {}, phone: {}", msgId, phone, e);
-            updateSmsStatus(smsRecord.getId().toString(), "FAILURE", null, e.getMessage());
-            oracleSmsHelper.updateSmsStatus(msgId, "FAILURE");
+            log.error("Error sending SOAP SMS - msgId: {}, phone: {}", msgId, phone, e);
+            return false;
         }
     }
 
@@ -152,15 +117,18 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
                 + "</soap:Envelope>";
     }
 
-    @Transactional
-    private void updateSmsStatus(String logId, String status, String responseCode, String message) {
-        smsAcceptedRepository.findById(logId).ifPresent(smsLog -> {
-            smsLog.setSmsStatus(status);
-            smsLog.setResponseCode(responseCode);
-            smsLog.setResponseMessage(message);
-            smsLog.setSentAt(LocalDateTime.now());
-            smsAcceptedRepository.save(smsLog);
-            log.info("Updated SMS status - logId: {}, status: {}", logId, status);
-        });
+    private void logSmsToPostgres(String msgId, String phone, String message, String status, String errorDetails) {
+        SmsAcceptedLog smsLog = SmsAcceptedLog.builder()
+                .msgId(msgId)
+                .phone(phone)
+                .smsContent(message)
+                .smsStatus(status)
+                .errorDetails(errorDetails)
+                .createdAt(LocalDateTime.now())
+                .sentAt(LocalDateTime.now())
+                .build();
+
+        smsAcceptedRepository.save(smsLog);
+        log.debug("Logged SMS to PostgreSQL - msgId: {}, status: {}", msgId, status);
     }
 }

@@ -1,7 +1,6 @@
 package com.backend.features.sms_accepted.controller;
 
-import com.backend.features.sms_accepted.dto.SendAcceptedSmsRequest;
-import com.backend.features.sms_accepted.dto.SendAcceptedSmsResponse;
+import com.backend.features.sms_accepted.dto.SendBatchSmsResponse;
 import com.backend.features.sms_accepted.service.SmsAcceptedService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/sms-accepted")
@@ -21,26 +22,10 @@ public class SmsAcceptedController {
     private final SmsAcceptedService smsAcceptedService;
 
     @PostMapping("/send")
-    @Operation(summary = "Send SMS via SOAP Gateway", description = "Send SMS message to a phone number")
-    public ResponseEntity<SendAcceptedSmsResponse> sendSms(@RequestBody SendAcceptedSmsRequest request) {
-        log.info("API: SMS send request - phone: {}", request.getPhone());
-        SendAcceptedSmsResponse response = smsAcceptedService.sendSms(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @PostMapping("/process-pending")
-    @Operation(summary = "Process Pending SMS from Oracle", description = "Pull and process pending SMS records from Oracle VIEW_SMS")
-    public ResponseEntity<String> processPending() {
-        log.info("API: Processing pending SMS from Oracle VIEW_SMS");
-        smsAcceptedService.processPendingSmsFromOracle();
-        return ResponseEntity.ok("Processing pending SMS from Oracle started");
-    }
-
-    @GetMapping("/status/{msgId}")
-    @Operation(summary = "Get SMS Status", description = "Get the current status of an SMS by message ID")
-    public ResponseEntity<SendAcceptedSmsResponse> getStatus(@PathVariable String msgId) {
-        log.info("API: Fetching SMS status - msgId: {}", msgId);
-        SendAcceptedSmsResponse response = smsAcceptedService.getStatus(msgId);
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Process and Send Batch SMS", description = "Process PROCESSING records from Oracle D_CBS_SMS_LOG and send SMS via SOAP gateway")
+    public ResponseEntity<SendBatchSmsResponse> sendBatchSms() {
+        log.info("API: Processing batch SMS from Oracle D_CBS_SMS_LOG");
+        SendBatchSmsResponse response = smsAcceptedService.processSms();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

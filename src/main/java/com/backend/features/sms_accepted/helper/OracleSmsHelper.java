@@ -17,9 +17,9 @@ public class OracleSmsHelper {
 
     private final OracleConnection oracleConnection;
 
-    public List<OracleSmsDto> selectSmsPendingRecords() {
+    public List<OracleSmsDto> selectProcessingSmsRecords() {
         List<OracleSmsDto> records = new ArrayList<>();
-        String query = "SELECT msg_id, phone, message FROM VIEW_SMS WHERE status = 'PENDING'";
+        String query = "SELECT MSG_ID, TELL, DESCRIPTION FROM D_CBS_SMS_LOG WHERE SMS_STATUS = 'PROCESSING'";
 
         try (Connection con = oracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
@@ -28,24 +28,24 @@ public class OracleSmsHelper {
 
             while (rs.next()) {
                 OracleSmsDto record = OracleSmsDto.builder()
-                        .msgId(rs.getString("msg_id"))
-                        .phone(rs.getString("phone"))
-                        .message(rs.getString("message"))
+                        .msgId(rs.getString("MSG_ID"))
+                        .phone(rs.getString("TELL"))
+                        .message(rs.getString("DESCRIPTION"))
                         .build();
                 records.add(record);
             }
 
-            log.info("Oracle: Selected {} pending SMS records from VIEW_SMS", records.size());
+            log.info("Oracle: Selected {} PROCESSING SMS records from D_CBS_SMS_LOG", records.size());
             return records;
 
         } catch (SQLException e) {
-            log.error("Oracle: Error fetching SMS records from VIEW_SMS | Error: {}", e.getMessage(), e);
+            log.error("Oracle: Error fetching SMS records from D_CBS_SMS_LOG | Error: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to select SMS records from Oracle", e);
         }
     }
 
     public void updateSmsStatus(String msgId, String status) {
-        String query = "UPDATE VIEW_SMS SET status = ? WHERE msg_id = ?";
+        String query = "UPDATE D_CBS_SMS_LOG SET SMS_STATUS = ? WHERE MSG_ID = ?";
 
         try (Connection con = oracleConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
@@ -55,14 +55,14 @@ public class OracleSmsHelper {
 
             int rowsUpdated = ps.executeUpdate();
             if (rowsUpdated > 0) {
-                log.info("Oracle: Updated SMS status to '{}' for msg_id: {}", status, msgId);
+                log.info("Oracle: Updated SMS_STATUS to '{}' for MSG_ID: {}", status, msgId);
             } else {
-                log.warn("Oracle: No records updated for msg_id: {}", msgId);
+                log.warn("Oracle: No records updated for MSG_ID: {}", msgId);
             }
 
         } catch (SQLException e) {
-            log.error("Oracle: Error updating SMS status | msg_id: {}, Error: {}", msgId, e.getMessage(), e);
-            throw new RuntimeException("Failed to update SMS status in Oracle", e);
+            log.error("Oracle: Error updating SMS_STATUS | MSG_ID: {}, Error: {}", msgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to update SMS_STATUS in Oracle", e);
         }
     }
 }
