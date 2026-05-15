@@ -8,6 +8,7 @@ import com.backend.features.sms.dto.SendBatchSmsResponse;
 import com.backend.features.sms.dto.SendSmsRequest;
 import com.backend.features.sms.dto.SendSmsResponse;
 import com.backend.features.sms.helper.OracleSmsHelper;
+import com.backend.features.sms.helper.PhoneValidator;
 import com.backend.features.sms.models.SmsLog;
 import com.backend.features.sms.repository.SmsRepository;
 import com.backend.features.sms.service.SmsService;
@@ -34,6 +35,7 @@ public class SmsServiceImpl implements SmsService {
     private final HttpClientUtil httpClientUtil;
     private final OracleSmsHelper oracleSmsHelper;
     private final NotificationConfigRepository notificationConfigRepository;
+    private final PhoneValidator phoneValidator;
 
     @Override
     @Transactional
@@ -44,26 +46,45 @@ public class SmsServiceImpl implements SmsService {
 
         log.info("Sending single SMS - requestId: {}, phone: {}", requestId, phone);
 
+        // Validate phone number
+        if (!phoneValidator.isValidPhone(phone)) {
+            String errorMsg = phoneValidator.getErrorMessage(phone);
+            log.error("Invalid phone number - requestId: {}, error: {}", requestId, errorMsg);
+            logSmsToPostgres(requestId, phone, content, "ERROR", errorMsg);
+
+            return SendSmsResponse.builder()
+                    .requestId(requestId)
+                    .phone(phone)
+                    .status("ERROR")
+                    .sentAt(LocalDateTime.now())
+                    .error(errorMsg)
+                    .build();
+        }
+
+        // Format phone number
+        String formattedPhone = phoneValidator.formatPhoneNumber(phone);
+        log.debug("Formatted phone number: {} -> {}", phone, formattedPhone);
+
         try {
-            boolean success = sendSoapSms(phone, content, requestId);
+            boolean success = sendSoapSms(formattedPhone, content, requestId);
 
             if (success) {
-                logSmsToPostgres(requestId, phone, content, "SUCCESS", null);
-                log.info("SMS sent successfully - requestId: {}, phone: {}", requestId, phone);
+                logSmsToPostgres(requestId, formattedPhone, content, "SUCCESS", null);
+                log.info("SMS sent successfully - requestId: {}, phone: {}", requestId, formattedPhone);
 
                 return SendSmsResponse.builder()
                         .requestId(requestId)
-                        .phone(phone)
+                        .phone(formattedPhone)
                         .status("SUCCESS")
                         .sentAt(LocalDateTime.now())
                         .build();
             } else {
-                logSmsToPostgres(requestId, phone, content, "ERROR", "SOAP response error");
-                log.warn("SMS send failed - requestId: {}, phone: {}", requestId, phone);
+                logSmsToPostgres(requestId, formattedPhone, content, "ERROR", "SOAP response error");
+                log.warn("SMS send failed - requestId: {}, phone: {}", requestId, formattedPhone);
 
                 return SendSmsResponse.builder()
                         .requestId(requestId)
-                        .phone(phone)
+                        .phone(formattedPhone)
                         .status("ERROR")
                         .sentAt(LocalDateTime.now())
                         .error("SOAP response error")
@@ -71,12 +92,12 @@ public class SmsServiceImpl implements SmsService {
             }
 
         } catch (Exception e) {
-            log.error("Error sending SMS - requestId: {}, phone: {}", requestId, phone, e);
-            logSmsToPostgres(requestId, phone, content, "ERROR", e.getMessage());
+            log.error("Error sending SMS - requestId: {}, phone: {}", requestId, formattedPhone, e);
+            logSmsToPostgres(requestId, formattedPhone, content, "ERROR", e.getMessage());
 
             return SendSmsResponse.builder()
                     .requestId(requestId)
-                    .phone(phone)
+                    .phone(formattedPhone)
                     .status("ERROR")
                     .sentAt(LocalDateTime.now())
                     .error(e.getMessage())
@@ -103,16 +124,30 @@ public class SmsServiceImpl implements SmsService {
 
         for (OracleSmsDto record : processingRecords) {
             try {
-                boolean success = sendSoapSms(record.getPhone(), smsMessage, record.getMsgId());
+                // Validate phone number
+                if (!phoneValidator.isValidPhone(record.getPhone())) {
+                    String errorMsg = phoneValidator.getErrorMessage(record.getPhone());
+                    log.error("Invalid phone number - msgId: {}, phone: {}", record.getMsgId(), record.getPhone());
+                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", errorMsg);
+                    failureCount++;
+                    continue;
+                }
+
+                // Format phone number
+                String formattedPhone = phoneValidator.formatPhoneNumber(record.getPhone());
+                log.debug("Formatted phone number: {} -> {}", record.getPhone(), formattedPhone);
+
+                boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
                 if (success) {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "SUCCESS", null);
-                    log.info("SMS sent successfully - msgId: {}, phone: {}", record.getMsgId(), record.getPhone());
+                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, "SUCCESS", null);
+                    log.info("SMS sent successfully - msgId: {}, phone: {}", record.getMsgId(), formattedPhone);
                     successCount++;
                 } else {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", "SOAP response error");
-                    log.warn("SMS send failed - msgId: {}, phone: {}", record.getMsgId(), record.getPhone());
+                    logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, "ERROR", "SOAP response error");
+                    log.warn("SMS send failed - msgId: {}, phone: {}", record.getMsgId(), formattedPhone);
                     failureCount++;
                 }
             } catch (Exception e) {
