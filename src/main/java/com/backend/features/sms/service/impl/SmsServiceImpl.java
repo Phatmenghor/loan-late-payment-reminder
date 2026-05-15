@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CompletableFuture;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -53,19 +52,6 @@ public class SmsServiceImpl implements SmsService {
 
         if (!phoneValidator.isValidPhone(phone)) {
             String errorMsg = phoneValidator.getErrorMessage(phone);
-            logSmsToPostgres(requestId, phone, content, SmsStatus.ERROR, errorMsg);
-
-            return SendSmsResponse.builder()
-                    .requestId(requestId)
-                    .phone(phone)
-                    .status("ERROR")
-                    .sentAt(LocalDateTime.now())
-                    .error(errorMsg)
-                    .build();
-        }
-
-        if (!isValidSmsLength(content)) {
-            String errorMsg = "SMS message too long (max 200 characters for Khmer text)";
             logSmsToPostgres(requestId, phone, content, SmsStatus.ERROR, errorMsg);
 
             return SendSmsResponse.builder()
@@ -266,27 +252,6 @@ public class SmsServiceImpl implements SmsService {
                 + "</soap:Envelope>";
     }
 
-    private boolean isValidSmsLength(String message) {
-        if (message == null || message.isEmpty()) {
-            return false;
-        }
-
-        byte[] utf8Bytes = message.getBytes(StandardCharsets.UTF_8);
-        int byteLength = utf8Bytes.length;
-        int charLength = message.length();
-
-        // Khmer SMS limits: ~70 chars for Khmer (3-4 bytes per char = 210-280 bytes)
-        // But gateway may concatenate: 160 for ASCII, 70 for Khmer
-        // Max total: 500 bytes for multi-part SMS
-        boolean valid = byteLength <= 500 && charLength <= 200;
-
-        if (!valid) {
-            log.warn("SMS message exceeds limits - chars: {}, bytes (UTF-8): {} (max 200 chars or 500 bytes)",
-                    charLength, byteLength);
-        }
-
-        return valid;
-    }
 
     /**
      * Log SMS to PostgreSQL audit table (never deleted - permanent history)
