@@ -217,17 +217,37 @@ public class SmsServiceImpl implements SmsService {
     }
 
     private void logSmsToPostgres(String msgId, String phone, String message, String status, String errorDetails) {
-        SmsLog smsLog = SmsLog.builder()
-                .msgId(msgId)
-                .phone(phone)
-                .smsContent(message)
-                .smsStatus(status)
-                .errorDetails(errorDetails)
-                .createdAt(LocalDateTime.now())
-                .sentAt(LocalDateTime.now())
-                .build();
+        try {
+            // Check if record already exists
+            var existingSms = smsRepository.findByMsgId(msgId);
 
-        smsRepository.save(smsLog);
-        log.debug("Logged SMS to PostgreSQL - msgId: {}, status: {}", msgId, status);
+            if (existingSms.isPresent()) {
+                // Update existing record
+                SmsLog smsLog = existingSms.get();
+                smsLog.setPhone(phone);
+                smsLog.setSmsContent(message);
+                smsLog.setSmsStatus(status);
+                smsLog.setErrorDetails(errorDetails);
+                smsLog.setSentAt(LocalDateTime.now());
+                smsRepository.save(smsLog);
+                log.debug("Updated SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status);
+            } else {
+                // Create new record
+                SmsLog smsLog = SmsLog.builder()
+                        .msgId(msgId)
+                        .phone(phone)
+                        .smsContent(message)
+                        .smsStatus(status)
+                        .errorDetails(errorDetails)
+                        .createdAt(LocalDateTime.now())
+                        .sentAt(LocalDateTime.now())
+                        .build();
+
+                smsRepository.save(smsLog);
+                log.debug("Created SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status);
+            }
+        } catch (Exception e) {
+            log.error("Error logging SMS to PostgreSQL - msgId: {}, error: {}", msgId, e.getMessage(), e);
+        }
     }
 }
