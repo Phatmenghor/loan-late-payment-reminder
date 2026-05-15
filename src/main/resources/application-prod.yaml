@@ -53,6 +53,12 @@ datasource:
     connection-timeout: 20000
     idle-timeout: 300000
 
+# Mobile Banking Configuration
+mb:
+  otpUrl: ${MB_OTP_URL:http://192.168.103.11:15004/CPBBank/services/CPBMobile?wsdl}
+  registerCodeUrl: ${MB_REGISTER_CODE_URL:http://192.168.103.13:8090/API/RegisterCustomerMB/}
+  secretKey: ${MB_SECRET_KEY:mobilebankingCPB@#%123}
+
 logging:
   level:
     root: WARN
