@@ -50,12 +50,8 @@ public class SmsServiceImpl implements SmsService {
         String phone = request.getPhone();
         String content = request.getContent();
 
-        log.info("Sending single SMS - requestId: {}, phone: {}", requestId, phone);
-
-        // Validate phone number
         if (!phoneValidator.isValidPhone(phone)) {
             String errorMsg = phoneValidator.getErrorMessage(phone);
-            log.error("Invalid phone number - requestId: {}, error: {}", requestId, errorMsg);
             logSmsToPostgres(requestId, phone, content, SmsStatus.ERROR, errorMsg);
 
             return SendSmsResponse.builder()
@@ -67,17 +63,13 @@ public class SmsServiceImpl implements SmsService {
                     .build();
         }
 
-        // Format phone number
         String formattedPhone = phoneValidator.formatPhoneNumber(phone);
-        log.debug("Formatted phone number: {} -> {}", phone, formattedPhone);
 
         try {
             boolean success = sendSoapSms(formattedPhone, content, requestId);
 
             if (success) {
                 logSmsToPostgres(requestId, formattedPhone, content, SmsStatus.SUCCESS, null);
-                log.info("SMS sent successfully - requestId: {}, phone: {}", requestId, formattedPhone);
-
                 return SendSmsResponse.builder()
                         .requestId(requestId)
                         .phone(formattedPhone)
@@ -86,8 +78,6 @@ public class SmsServiceImpl implements SmsService {
                         .build();
             } else {
                 logSmsToPostgres(requestId, formattedPhone, content, SmsStatus.ERROR, "SOAP response error");
-                log.warn("SMS send failed - requestId: {}, phone: {}", requestId, formattedPhone);
-
                 return SendSmsResponse.builder()
                         .requestId(requestId)
                         .phone(formattedPhone)
@@ -98,7 +88,7 @@ public class SmsServiceImpl implements SmsService {
             }
 
         } catch (Exception e) {
-            log.error("Error sending SMS - requestId: {}, phone: {}", requestId, formattedPhone, e);
+            log.error("Error sending single SMS - requestId: {}, error: {}", requestId, e.getMessage());
             logSmsToPostgres(requestId, formattedPhone, content, SmsStatus.ERROR, e.getMessage());
 
             return SendSmsResponse.builder()
@@ -113,13 +103,9 @@ public class SmsServiceImpl implements SmsService {
 
     @Override
     public SendBatchSmsResponse startBatchProcessing() {
-        log.info("API: Initiating batch SMS processing");
-
         try {
             List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
             int totalRecords = processingRecords.size();
-
-            log.info("Found {} PROCESSING SMS records from Oracle", totalRecords);
 
             batchProcessingStatusService.startProcessing(totalRecords);
             processSms();
@@ -131,13 +117,13 @@ public class SmsServiceImpl implements SmsService {
                     .message("SMS batch processing started. Total: " + totalRecords + " records")
                     .build();
         } catch (Exception e) {
-            log.error("Failed to start batch processing", e);
+            log.error("Failed to start batch processing: {}", e.getMessage());
             batchProcessingStatusService.failProcessing(e.getMessage());
             return SendBatchSmsResponse.builder()
                     .totalProcessed(0)
                     .successCount(0)
                     .failureCount(0)
-                    .message("Failed to start batch processing: " + e.getMessage())
+                    .message("Failed to start batch processing")
                     .build();
         }
     }
@@ -146,17 +132,12 @@ public class SmsServiceImpl implements SmsService {
     @Async
     @Transactional
     public CompletableFuture<SendBatchSmsResponse> processSms() {
-        log.info("Starting async batch SMS processing from Oracle D_CBS_SMS_LOG");
-
         try {
             NotificationConfig smsConfig = notificationConfigRepository.findActiveByConfigType(SMS_CONFIG_TYPE)
                     .orElseThrow(() -> new RuntimeException("SMS configuration not found"));
 
             String smsMessage = smsConfig.getConfigValue();
-            log.info("Using SMS template: {}", smsConfig.getDescription());
-
             List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
-            log.info("Processing {} PROCESSING SMS records from Oracle", processingRecords.size());
 
             int successCount = 0;
             int failureCount = 0;
@@ -164,11 +145,8 @@ public class SmsServiceImpl implements SmsService {
             for (OracleSmsDto record : processingRecords) {
                 String requestId = String.valueOf(System.currentTimeMillis());
                 try {
-                    // Validate phone number
                     if (!phoneValidator.isValidPhone(record.getPhone())) {
                         String errorMsg = phoneValidator.getErrorMessage(record.getPhone());
-                        log.error("Invalid phone number - msgId: {}, requestId: {}, phone: {}",
-                                record.getMsgId(), requestId, record.getPhone());
                         oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                         logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, errorMsg);
                         batchProcessingStatusService.updateProgress(false);
@@ -176,29 +154,21 @@ public class SmsServiceImpl implements SmsService {
                         continue;
                     }
 
-                    // Format phone number
                     String formattedPhone = phoneValidator.formatPhoneNumber(record.getPhone());
-                    log.debug("Formatted phone number: {} -> {}", record.getPhone(), formattedPhone);
-
                     boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
+
                     if (success) {
                         oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
                         logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.SUCCESS, null);
-                        log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}",
-                                record.getMsgId(), requestId, formattedPhone);
                         batchProcessingStatusService.updateProgress(true);
                         successCount++;
                     } else {
                         oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                         logSmsToPostgres(record.getMsgId(), formattedPhone, smsMessage, SmsStatus.ERROR, "SOAP response error");
-                        log.warn("SMS send failed - msgId: {}, requestId: {}, phone: {}",
-                                record.getMsgId(), requestId, formattedPhone);
                         batchProcessingStatusService.updateProgress(false);
                         failureCount++;
                     }
                 } catch (Exception e) {
-                    log.error("Error sending SMS - msgId: {}, requestId: {}, phone: {}",
-                            record.getMsgId(), requestId, record.getPhone(), e);
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
                     logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, SmsStatus.ERROR, e.getMessage());
                     batchProcessingStatusService.updateProgress(false);
@@ -208,7 +178,6 @@ public class SmsServiceImpl implements SmsService {
 
             int totalProcessed = processingRecords.size();
             log.info("Batch SMS processing completed - Total: {}, Success: {}, Failure: {}", totalProcessed, successCount, failureCount);
-
             batchProcessingStatusService.completeProcessing();
 
             return CompletableFuture.completedFuture(SendBatchSmsResponse.builder()
@@ -218,7 +187,7 @@ public class SmsServiceImpl implements SmsService {
                     .message("SMS batch processing completed")
                     .build());
         } catch (Exception e) {
-            log.error("Batch SMS processing failed", e);
+            log.error("Batch SMS processing failed: {}", e.getMessage());
             batchProcessingStatusService.failProcessing(e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
@@ -232,23 +201,20 @@ public class SmsServiceImpl implements SmsService {
         String soapXml = buildSoapRequest(requestId, phone, message, secretKey);
 
         try {
-            log.info("Sending SOAP SMS - msgId: {}, requestId: {}, phone: {}", msgId, requestId, phone);
-
             String responseXml = httpClientUtil.postForString(otpUrl, soapXml, "application/soap+xml");
 
             Matcher matcher = Pattern.compile("<(?:\\w+:)?return>(.*?)</(?:\\w+:)?return>").matcher(responseXml);
             String jsonPayload = matcher.find() ? matcher.group(1) : null;
 
             if (jsonPayload != null && jsonPayload.contains("\"rescode\":\"00\"")) {
-                log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}", msgId, requestId, phone);
                 return true;
             } else {
-                log.warn("SMS sending failed - msgId: {}, requestId: {}, response: {}", msgId, requestId, jsonPayload);
+                log.warn("SMS send failed - msgId: {}, phone: {}, response: {}", msgId, phone, jsonPayload);
                 return false;
             }
 
         } catch (Exception e) {
-            log.error("Error sending SOAP SMS - msgId: {}, requestId: {}, phone: {}", msgId, requestId, phone, e);
+            log.error("SOAP SMS error - msgId: {}, phone: {}, error: {}", msgId, phone, e.getMessage());
             return false;
         }
     }
@@ -272,27 +238,14 @@ public class SmsServiceImpl implements SmsService {
                 + "</soap:Envelope>";
     }
 
-    private String escapeXml(String text) {
-        if (text == null) {
-            return null;
-        }
-        return text.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
-    }
-
     /**
      * Log SMS to PostgreSQL audit table (never deleted - permanent history)
      */
     private void logSmsToPostgres(String msgId, String phone, String message, SmsStatus status, String errorDetails) {
         try {
-            // Check if record already exists
             var existingSms = smsRepository.findByMsgId(msgId);
 
             if (existingSms.isPresent()) {
-                // Update existing record
                 SmsLog smsLog = existingSms.get();
                 smsLog.setPhone(phone);
                 smsLog.setSmsContent(message);
@@ -300,9 +253,7 @@ public class SmsServiceImpl implements SmsService {
                 smsLog.setErrorDetails(errorDetails);
                 smsLog.setSentAt(LocalDateTime.now());
                 smsRepository.save(smsLog);
-                log.debug("Updated SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status.getValue());
             } else {
-                // Create new record
                 SmsLog smsLog = SmsLog.builder()
                         .msgId(msgId)
                         .phone(phone)
@@ -312,12 +263,10 @@ public class SmsServiceImpl implements SmsService {
                         .createdAt(LocalDateTime.now())
                         .sentAt(LocalDateTime.now())
                         .build();
-
                 smsRepository.save(smsLog);
-                log.debug("Created SMS log in PostgreSQL - msgId: {}, status: {}", msgId, status.getValue());
             }
         } catch (Exception e) {
-            log.error("Error logging SMS to PostgreSQL - msgId: {}, error: {}", msgId, e.getMessage(), e);
+            log.error("Error logging SMS - msgId: {}, error: {}", msgId, e.getMessage());
         }
     }
 }

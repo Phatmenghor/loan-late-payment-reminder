@@ -32,8 +32,6 @@ public class BatchProcessingStatusService {
                 .startedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
-
-        log.info("Batch processing started - Total records: {}", totalRecords);
     }
 
     public void updateProgress(boolean success) {

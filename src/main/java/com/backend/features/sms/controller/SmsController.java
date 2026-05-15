@@ -28,7 +28,6 @@ public class SmsController {
     @PostMapping("/send-single")
     @Operation(summary = "Send Single SMS", description = "Send a single SMS with phone number and content")
     public ResponseEntity<SendSmsResponse> sendSingleSms(@Valid @RequestBody SendSmsRequest request) {
-        log.info("API: Sending single SMS - phone: {}", request.getPhone());
         SendSmsResponse response = smsService.sendSms(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -36,7 +35,6 @@ public class SmsController {
     @PostMapping("/send")
     @Operation(summary = "Process and Send Batch SMS (Async - No Timeout)", description = "Asynchronously process PROCESSING records from Oracle D_CBS_SMS_LOG and send SMS via SOAP gateway. Supports up to 100,000+ records without timeout.")
     public ResponseEntity<SendBatchSmsResponse> sendBatchSms() {
-        log.info("API: Processing batch SMS from Oracle D_CBS_SMS_LOG (async)");
         SendBatchSmsResponse response = smsService.startBatchProcessing();
         return ResponseEntity.accepted().body(response);
     }
@@ -44,7 +42,6 @@ public class SmsController {
     @GetMapping("/status")
     @Operation(summary = "Get Batch SMS Processing Status", description = "Check current progress of batch SMS processing including percentage complete, total sent, and success count")
     public ResponseEntity<BatchProcessingStatus> getProcessingStatus() {
-        log.info("API: Checking batch SMS processing status");
         BatchProcessingStatus status = batchProcessingStatusService.getStatus();
         return ResponseEntity.ok(status);
     }
