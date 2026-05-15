@@ -225,7 +225,8 @@ public class SmsServiceImpl implements SmsService {
     }
 
     private String buildSoapRequest(String requestID, String phone, String message, String secretKey) {
-        return "<?xml version=\"1.0\"?>"
+        String escapedMessage = escapeXml(message);
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                 + "<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope' "
                 + "xmlns:cpb='http://cpbmobile.vnpay.vn'>"
                 + "<soap:Header/>"
@@ -234,13 +235,24 @@ public class SmsServiceImpl implements SmsService {
                 + "<cpb:requestId>" + requestID + "</cpb:requestId>"
                 + "<cpb:keyword>CPBSMS</cpb:keyword>"
                 + "<cpb:mobileNo>" + phone + "</cpb:mobileNo>"
-                + "<cpb:content>" + message + "</cpb:content>"
+                + "<cpb:content>" + escapedMessage + "</cpb:content>"
                 + "<cpb:requestTime></cpb:requestTime>"
                 + "<cpb:contentType>9</cpb:contentType>"
                 + "<cpb:secretKey>" + secretKey + "</cpb:secretKey>"
                 + "</cpb:sendSmsNew>"
                 + "</soap:Body>"
                 + "</soap:Envelope>";
+    }
+
+    private String escapeXml(String text) {
+        if (text == null) {
+            return null;
+        }
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     /**

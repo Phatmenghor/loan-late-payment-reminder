@@ -11,6 +11,12 @@ spring:
   profiles:
     active: local
 
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
   jpa:
     open-in-view: false
     hibernate:
