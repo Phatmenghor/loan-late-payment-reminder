@@ -172,11 +172,12 @@ public class SmsServiceImpl implements SmsService {
     private boolean sendSoapSms(String phone, String message, String msgId) {
         String otpUrl = mobileBankingConfig.getOtpUrl();
         String secretKey = mobileBankingConfig.getSecretKey();
+        String requestId = String.valueOf(System.currentTimeMillis());
 
-        String soapXml = buildSoapRequest(msgId, phone, message, secretKey);
+        String soapXml = buildSoapRequest(requestId, phone, message, secretKey);
 
         try {
-            log.info("Sending SOAP SMS - msgId: {}, phone: {}", msgId, phone);
+            log.info("Sending SOAP SMS - msgId: {}, requestId: {}, phone: {}", msgId, requestId, phone);
 
             String responseXml = httpClientUtil.postForString(otpUrl, soapXml, "application/soap+xml");
 
@@ -184,15 +185,15 @@ public class SmsServiceImpl implements SmsService {
             String jsonPayload = matcher.find() ? matcher.group(1) : null;
 
             if (jsonPayload != null && jsonPayload.contains("\"rescode\":\"00\"")) {
-                log.info("SMS sent successfully - msgId: {}, phone: {}", msgId, phone);
+                log.info("SMS sent successfully - msgId: {}, requestId: {}, phone: {}", msgId, requestId, phone);
                 return true;
             } else {
-                log.warn("SMS sending failed - msgId: {}, response: {}", msgId, jsonPayload);
+                log.warn("SMS sending failed - msgId: {}, requestId: {}, response: {}", msgId, requestId, jsonPayload);
                 return false;
             }
 
         } catch (Exception e) {
-            log.error("Error sending SOAP SMS - msgId: {}, phone: {}", msgId, phone, e);
+            log.error("Error sending SOAP SMS - msgId: {}, requestId: {}, phone: {}", msgId, requestId, phone, e);
             return false;
         }
     }
