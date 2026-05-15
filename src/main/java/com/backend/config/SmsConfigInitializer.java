@@ -22,14 +22,16 @@ public class SmsConfigInitializer implements CommandLineRunner {
     private void initializeNotificationConfigs() {
         String notificationLoanLateType = "NOTIFICATION_LOAN_LATE";
         String notificationSmsType = "NOTIFICATION_SMS";
-        String khmerMessage = "ធនាគារប្រៃសណីយ៍កម្ពុជា ក.អ សូមស្វាគមន៍! សូមលោកអ្នកអញ្ជើញមកបង់ប្រាក់ឲ្យបានទាន់ពេលតាមតារាងសងប្រាក់របស់លោកអ្នក។ សូមអរគុណ 070 200 002";
+
+        String loanLateMessage = "ធនាគារប្រៃសណីយ៍កម្ពុជា ក.អ សូមស្វាគមន៍! សូមលោកអ្នកអញ្ជើញមកបង់ប្រាក់ឲ្យបានទាន់ពេលតាមតារាងសងប្រាក់របស់លោកអ្នក។ សូមអរគុណ 070 200 002";
+        String smsMessage = "សូមអរគុណដែលបានប្រើសេវាកម្មរបស់ធនាគារប្រៃសណីយ៍កម្ពុជា។";
 
         // Initialize NOTIFICATION_LOAN_LATE
         if (notificationConfigRepository.findByConfigType(notificationLoanLateType).isEmpty()) {
             NotificationConfig notificationConfig = NotificationConfig.builder()
                     .configType(notificationLoanLateType)
-                    .configValue(khmerMessage)
-                    .description("SMS message for loan late payment reminder")
+                    .configValue(loanLateMessage)
+                    .description("Notification message for loan late payment reminder")
                     .isActive(true)
                     .build();
 
@@ -41,8 +43,8 @@ public class SmsConfigInitializer implements CommandLineRunner {
         if (notificationConfigRepository.findByConfigType(notificationSmsType).isEmpty()) {
             NotificationConfig smsConfig = NotificationConfig.builder()
                     .configType(notificationSmsType)
-                    .configValue(khmerMessage)
-                    .description("SMS template for loan payment reminder")
+                    .configValue(smsMessage)
+                    .description("SMS template message for bulk SMS")
                     .isActive(true)
                     .build();
 
