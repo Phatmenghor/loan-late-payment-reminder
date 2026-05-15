@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class SmsAcceptedLog extends BaseUUIDEntity {
 
-    @Column(name = "msg_id", nullable = false)
+    @Column(name = "msg_id", nullable = false, unique = true)
     private String msgId;
 
     @Column(name = "phone", nullable = false)
@@ -31,12 +31,6 @@ public class SmsAcceptedLog extends BaseUUIDEntity {
 
     @Column(name = "sms_status", nullable = false)
     private String smsStatus;
-
-    @Column(name = "response_code")
-    private String responseCode;
-
-    @Column(name = "response_message", columnDefinition = "TEXT")
-    private String responseMessage;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

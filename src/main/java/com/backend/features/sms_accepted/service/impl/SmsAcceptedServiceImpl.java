@@ -56,16 +56,18 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
                 if (success) {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
                     logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "SUCCESS", null);
+                    log.info("SMS sent successfully - msgId: {}, phone: {}", record.getMsgId(), record.getPhone());
                     successCount++;
                 } else {
-                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "FAILURE");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "FAILURE", "SOAP response error");
+                    oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", "SOAP response error");
+                    log.warn("SMS send failed - msgId: {}, phone: {}", record.getMsgId(), record.getPhone());
                     failureCount++;
                 }
             } catch (Exception e) {
                 log.error("Error sending SMS - msgId: {}, phone: {}", record.getMsgId(), record.getPhone(), e);
-                oracleSmsHelper.updateSmsStatus(record.getMsgId(), "FAILURE");
-                logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "FAILURE", e.getMessage());
+                oracleSmsHelper.updateSmsStatus(record.getMsgId(), "ERROR");
+                logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "ERROR", e.getMessage());
                 failureCount++;
             }
         }
