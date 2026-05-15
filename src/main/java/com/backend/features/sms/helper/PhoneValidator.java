@@ -3,24 +3,13 @@ package com.backend.features.sms.helper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.regex.Pattern;
-
 @Component
 @Slf4j
 public class PhoneValidator {
 
-    private static final Pattern CAMBODIA_PHONE_PATTERN = Pattern.compile(
-            "^(0|\\+855)?[0-9]{7,11}$"
-    );
-
-    private static final Pattern VALID_PHONE_PATTERN = Pattern.compile(
-            "^[0-9]{7,15}$"
-    );
-
     /**
-     * Validate and format Cambodia phone number
-     * Accepts: 0123456789, +855123456789, 123456789
-     * Converts to: 0123456789 format
+     * Validate phone number - accept any non-empty phone number
+     * Validation is lenient to accept all Cambodia formats
      */
     public boolean isValidPhone(String phone) {
         if (phone == null || phone.trim().isEmpty()) {
@@ -28,56 +17,41 @@ public class PhoneValidator {
             return false;
         }
 
-        String cleanPhone = phone.trim();
+        String cleanPhone = phone.trim().replaceAll("[^0-9+]", "");
 
-        // Check if it matches Cambodia phone pattern
-        if (CAMBODIA_PHONE_PATTERN.matcher(cleanPhone).matches()) {
-            log.debug("Valid Cambodia phone number: {}", cleanPhone);
+        // Accept if has at least 7 digits
+        if (cleanPhone.replaceAll("[^0-9]", "").length() >= 7) {
+            log.debug("Valid phone number: {}", phone);
             return true;
         }
 
-        // Check if it's a generic valid phone number
-        if (VALID_PHONE_PATTERN.matcher(cleanPhone.replaceAll("[^0-9]", "")).matches()) {
-            log.debug("Valid generic phone number: {}", cleanPhone);
-            return true;
-        }
-
-        log.warn("Invalid phone number format: {}", phone);
+        log.warn("Phone number too short: {}", phone);
         return false;
     }
 
     /**
-     * Format phone number to standard Cambodia format: 0xxxxxxxxx
+     * Format phone number to standard: remove spaces, dashes, etc
+     * Keep leading 0 or + as is
      */
     public String formatPhoneNumber(String phone) {
         if (phone == null) {
             return null;
         }
 
-        String cleaned = phone.trim().replaceAll("[^0-9+]", "");
+        String formatted = phone.trim()
+                .replaceAll("\\s+", "")     // Remove spaces
+                .replaceAll("-", "")         // Remove dashes
+                .replaceAll("\\(", "")       // Remove parentheses
+                .replaceAll("\\)", "");
 
-        // Remove +855 and replace with 0
-        if (cleaned.startsWith("+855")) {
-            cleaned = "0" + cleaned.substring(4);
-        }
-        // Remove leading + if any
-        else if (cleaned.startsWith("+")) {
-            cleaned = cleaned.substring(1);
-        }
-        // Add 0 prefix if missing and starts with 8 or 9 (Cambodia country code 855)
-        else if (!cleaned.startsWith("0") && (cleaned.startsWith("8") || cleaned.startsWith("9"))) {
-            cleaned = "0" + cleaned;
-        }
-
-        log.debug("Formatted phone number from {} to {}", phone, cleaned);
-        return cleaned;
+        log.debug("Formatted phone number from '{}' to '{}'", phone, formatted);
+        return formatted;
     }
 
     /**
      * Get phone number error message
      */
     public String getErrorMessage(String phone) {
-        return "Invalid phone number format: " + phone +
-               ". Expected formats: 0123456789, +855123456789, or 123456789";
+        return "Invalid phone number: " + phone + " (must have at least 7 digits)";
     }
 }
