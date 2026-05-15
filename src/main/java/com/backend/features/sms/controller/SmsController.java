@@ -1,9 +1,9 @@
-package com.backend.features.sms_accepted.controller;
+package com.backend.features.sms.controller;
 
-import com.backend.features.sms_accepted.dto.SendBatchSmsResponse;
-import com.backend.features.sms_accepted.dto.SendSmsRequest;
-import com.backend.features.sms_accepted.dto.SendSmsResponse;
-import com.backend.features.sms_accepted.service.SmsAcceptedService;
+import com.backend.features.sms.dto.SendBatchSmsResponse;
+import com.backend.features.sms.dto.SendSmsRequest;
+import com.backend.features.sms.dto.SendSmsResponse;
+import com.backend.features.sms.service.SmsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,19 +17,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/sms-accepted")
+@RequestMapping("/api/v1/sms")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "SMS Accepted", description = "SMS Accepted Service API")
-public class SmsAcceptedController {
+@Tag(name = "SMS", description = "SMS Service API")
+public class SmsController {
 
-    private final SmsAcceptedService smsAcceptedService;
+    private final SmsService smsService;
 
     @PostMapping("/send-single")
     @Operation(summary = "Send Single SMS", description = "Send a single SMS with phone number and content")
     public ResponseEntity<SendSmsResponse> sendSingleSms(@Valid @RequestBody SendSmsRequest request) {
         log.info("API: Sending single SMS - phone: {}", request.getPhone());
-        SendSmsResponse response = smsAcceptedService.sendSms(request);
+        SendSmsResponse response = smsService.sendSms(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -37,7 +37,7 @@ public class SmsAcceptedController {
     @Operation(summary = "Process and Send Batch SMS", description = "Process PROCESSING records from Oracle D_CBS_SMS_LOG and send SMS via SOAP gateway")
     public ResponseEntity<SendBatchSmsResponse> sendBatchSms() {
         log.info("API: Processing batch SMS from Oracle D_CBS_SMS_LOG");
-        SendBatchSmsResponse response = smsAcceptedService.processSms();
+        SendBatchSmsResponse response = smsService.processSms();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

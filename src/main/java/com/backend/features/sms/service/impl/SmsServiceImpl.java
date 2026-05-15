@@ -1,16 +1,16 @@
-package com.backend.features.sms_accepted.service.impl;
+package com.backend.features.sms.service.impl;
 
 import com.backend.config.MobileBankingConfig;
 import com.backend.features.notification.models.NotificationConfig;
 import com.backend.features.notification.repository.NotificationConfigRepository;
-import com.backend.features.sms_accepted.dto.OracleSmsDto;
-import com.backend.features.sms_accepted.dto.SendBatchSmsResponse;
-import com.backend.features.sms_accepted.dto.SendSmsRequest;
-import com.backend.features.sms_accepted.dto.SendSmsResponse;
-import com.backend.features.sms_accepted.helper.OracleSmsHelper;
-import com.backend.features.sms_accepted.models.SmsAcceptedLog;
-import com.backend.features.sms_accepted.repository.SmsAcceptedRepository;
-import com.backend.features.sms_accepted.service.SmsAcceptedService;
+import com.backend.features.sms.dto.OracleSmsDto;
+import com.backend.features.sms.dto.SendBatchSmsResponse;
+import com.backend.features.sms.dto.SendSmsRequest;
+import com.backend.features.sms.dto.SendSmsResponse;
+import com.backend.features.sms.helper.OracleSmsHelper;
+import com.backend.features.sms.models.SmsLog;
+import com.backend.features.sms.repository.SmsRepository;
+import com.backend.features.sms.service.SmsService;
 import com.backend.shared.utils.HttpClientUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,18 +19,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SmsAcceptedServiceImpl implements SmsAcceptedService {
+public class SmsServiceImpl implements SmsService {
 
-    private static final String SMS_ACCEPTED_CONFIG_TYPE = "NOTIFICATION_SMS_ACCEPTED";
+    private static final String SMS_CONFIG_TYPE = "NOTIFICATION_SMS";
 
-    private final SmsAcceptedRepository smsAcceptedRepository;
+    private final SmsRepository smsRepository;
     private final MobileBankingConfig mobileBankingConfig;
     private final HttpClientUtil httpClientUtil;
     private final OracleSmsHelper oracleSmsHelper;
@@ -39,7 +38,7 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
     @Override
     @Transactional
     public SendSmsResponse sendSms(SendSmsRequest request) {
-        String requestId = UUID.randomUUID().toString();
+        String requestId = String.valueOf(System.currentTimeMillis());
         String phone = request.getPhone();
         String content = request.getContent();
 
@@ -90,8 +89,8 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
     public SendBatchSmsResponse processSms() {
         log.info("Starting batch SMS processing from Oracle D_CBS_SMS_LOG");
 
-        NotificationConfig smsConfig = notificationConfigRepository.findActiveByConfigType(SMS_ACCEPTED_CONFIG_TYPE)
-                .orElseThrow(() -> new RuntimeException("SMS Accepted configuration not found"));
+        NotificationConfig smsConfig = notificationConfigRepository.findActiveByConfigType(SMS_CONFIG_TYPE)
+                .orElseThrow(() -> new RuntimeException("SMS configuration not found"));
 
         String smsMessage = smsConfig.getConfigValue();
         log.info("Using SMS template: {}", smsConfig.getDescription());
@@ -183,7 +182,7 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
     }
 
     private void logSmsToPostgres(String msgId, String phone, String message, String status, String errorDetails) {
-        SmsAcceptedLog smsLog = SmsAcceptedLog.builder()
+        SmsLog smsLog = SmsLog.builder()
                 .msgId(msgId)
                 .phone(phone)
                 .smsContent(message)
@@ -193,7 +192,7 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
                 .sentAt(LocalDateTime.now())
                 .build();
 
-        smsAcceptedRepository.save(smsLog);
+        smsRepository.save(smsLog);
         log.debug("Logged SMS to PostgreSQL - msgId: {}, status: {}", msgId, status);
     }
 }

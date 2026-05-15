@@ -1,4 +1,4 @@
-package com.backend.features.sms_accepted.dto;
+package com.backend.features.sms.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;

@@ -1,5 +1,5 @@
--- Create SMS Accepted Log table for audit trail
-CREATE TABLE IF NOT EXISTS sms_accepted_log (
+-- Create SMS Log table for audit trail
+CREATE TABLE IF NOT EXISTS sms_log (
     id UUID PRIMARY KEY NOT NULL,
     msg_id VARCHAR(255) NOT NULL UNIQUE,
     phone VARCHAR(20) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS sms_accepted_log (
 );
 
 -- Create indexes for query performance
-CREATE INDEX idx_sms_accepted_log_msg_id ON sms_accepted_log(msg_id);
-CREATE INDEX idx_sms_accepted_log_phone ON sms_accepted_log(phone);
-CREATE INDEX idx_sms_accepted_log_status ON sms_accepted_log(sms_status);
-CREATE INDEX idx_sms_accepted_log_created_at ON sms_accepted_log(created_at);
+CREATE INDEX idx_sms_log_msg_id ON sms_log(msg_id);
+CREATE INDEX idx_sms_log_phone ON sms_log(phone);
+CREATE INDEX idx_sms_log_status ON sms_log(sms_status);
+CREATE INDEX idx_sms_log_created_at ON sms_log(created_at);

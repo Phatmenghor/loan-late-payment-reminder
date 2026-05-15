@@ -1,7 +1,7 @@
-package com.backend.features.sms_accepted.helper;
+package com.backend.features.sms.helper;
 
 import com.backend.features.notification.helper.OracleDwhConnection;
-import com.backend.features.sms_accepted.dto.OracleSmsDto;
+import com.backend.features.sms.dto.OracleSmsDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
