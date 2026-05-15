@@ -155,6 +155,9 @@ public class SmsServiceImpl implements SmsService {
                     }
 
                     String formattedPhone = phoneValidator.formatPhoneNumber(record.getPhone());
+                    log.info("Processing SMS - msgId: {}, phone: {}, messageLength: {}, messagePreview: {}...",
+                            record.getMsgId(), formattedPhone, smsMessage.length(),
+                            smsMessage.length() > 50 ? smsMessage.substring(0, 50) : smsMessage);
                     boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
 
                     if (success) {
