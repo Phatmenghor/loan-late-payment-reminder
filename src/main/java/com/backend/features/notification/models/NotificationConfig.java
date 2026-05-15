@@ -18,10 +18,13 @@ import java.time.LocalDateTime;
 public class NotificationConfig extends BaseUUIDEntity {
 
     @Column(name = "config_type", nullable = false, unique = true, length = 50)
-    private String configType; // NOTIFICATION_LOAN_LATE
+    private String configType; // NOTIFICATION_LOAN_LATE, NOTIFICATION_SMS_ACCEPTED
 
     @Column(name = "config_value", nullable = false, columnDefinition = "TEXT")
     private String configValue; // The SMS message content
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description; // SMS template description
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default

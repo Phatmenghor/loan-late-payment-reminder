@@ -13,5 +13,5 @@ public class OracleSmsDto {
 
     private String msgId;
     private String phone;
-    private String message;
+    private String smsStatus;
 }

@@ -19,7 +19,7 @@ public class OracleSmsHelper {
 
     public List<OracleSmsDto> selectProcessingSmsRecords() {
         List<OracleSmsDto> records = new ArrayList<>();
-        String query = "SELECT MSG_ID, TELL, DESCRIPTION FROM D_CBS_SMS_LOG WHERE SMS_STATUS = 'PROCESSING'";
+        String query = "SELECT MSG_ID, TELL, SMS_STATUS FROM D_CBS_SMS_LOG WHERE SMS_STATUS = 'PROCESSING'";
 
         try (Connection con = oracleDwhConnection.getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
@@ -30,7 +30,7 @@ public class OracleSmsHelper {
                 OracleSmsDto record = OracleSmsDto.builder()
                         .msgId(rs.getString("MSG_ID"))
                         .phone(rs.getString("TELL"))
-                        .message(rs.getString("DESCRIPTION"))
+                        .smsStatus(rs.getString("SMS_STATUS"))
                         .build();
                 records.add(record);
             }

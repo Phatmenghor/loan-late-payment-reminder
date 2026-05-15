@@ -1,6 +1,8 @@
 package com.backend.features.sms_accepted.service.impl;
 
 import com.backend.config.MobileBankingConfig;
+import com.backend.features.notification.models.NotificationConfig;
+import com.backend.features.notification.repository.NotificationConfigRepository;
 import com.backend.features.sms_accepted.dto.OracleSmsDto;
 import com.backend.features.sms_accepted.dto.SendBatchSmsResponse;
 import com.backend.features.sms_accepted.helper.OracleSmsHelper;
@@ -23,15 +25,24 @@ import java.util.regex.Pattern;
 @Slf4j
 public class SmsAcceptedServiceImpl implements SmsAcceptedService {
 
+    private static final String SMS_ACCEPTED_CONFIG_TYPE = "NOTIFICATION_SMS_ACCEPTED";
+
     private final SmsAcceptedRepository smsAcceptedRepository;
     private final MobileBankingConfig mobileBankingConfig;
     private final HttpClientUtil httpClientUtil;
     private final OracleSmsHelper oracleSmsHelper;
+    private final NotificationConfigRepository notificationConfigRepository;
 
     @Override
     @Transactional
     public SendBatchSmsResponse processSms() {
         log.info("Starting batch SMS processing from Oracle D_CBS_SMS_LOG");
+
+        NotificationConfig smsConfig = notificationConfigRepository.findActiveByConfigType(SMS_ACCEPTED_CONFIG_TYPE)
+                .orElseThrow(() -> new RuntimeException("SMS Accepted configuration not found"));
+
+        String smsMessage = smsConfig.getConfigValue();
+        log.info("Using SMS template: {}", smsConfig.getDescription());
 
         List<OracleSmsDto> processingRecords = oracleSmsHelper.selectProcessingSmsRecords();
         log.info("Found {} PROCESSING SMS records from Oracle", processingRecords.size());
@@ -41,20 +52,20 @@ public class SmsAcceptedServiceImpl implements SmsAcceptedService {
 
         for (OracleSmsDto record : processingRecords) {
             try {
-                boolean success = sendSoapSms(record.getPhone(), record.getMessage(), record.getMsgId());
+                boolean success = sendSoapSms(record.getPhone(), smsMessage, record.getMsgId());
                 if (success) {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "SUCCESS");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), record.getMessage(), "SUCCESS", null);
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "SUCCESS", null);
                     successCount++;
                 } else {
                     oracleSmsHelper.updateSmsStatus(record.getMsgId(), "FAILURE");
-                    logSmsToPostgres(record.getMsgId(), record.getPhone(), record.getMessage(), "FAILURE", "SOAP response error");
+                    logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "FAILURE", "SOAP response error");
                     failureCount++;
                 }
             } catch (Exception e) {
                 log.error("Error sending SMS - msgId: {}, phone: {}", record.getMsgId(), record.getPhone(), e);
                 oracleSmsHelper.updateSmsStatus(record.getMsgId(), "FAILURE");
-                logSmsToPostgres(record.getMsgId(), record.getPhone(), record.getMessage(), "FAILURE", e.getMessage());
+                logSmsToPostgres(record.getMsgId(), record.getPhone(), smsMessage, "FAILURE", e.getMessage());
                 failureCount++;
             }
         }
