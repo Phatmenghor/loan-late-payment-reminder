@@ -40,13 +40,23 @@ cpb:
     username: ${AUTH_USERNAME:admin}
     password: ${AUTH_PASSWORD:admin123}
 
-# Oracle Database Configuration (DWH)
+# Oracle Database Configuration
 datasource:
   oracle:
     enabled: true
-    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
-    username: ${ORACLE_USERNAME:dwh}
+    url: ${ORACLE_URL:jdbc:oracle:thin:@192.168.102.5:1521:stg}
+    username: ${ORACLE_USERNAME:stg}
     password: ${ORACLE_PASSWORD:Bnk$$444}
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    maximum-pool-size: 10
+    minimum-idle: 3
+    connection-timeout: 20000
+    idle-timeout: 300000
+  oracle-dwh:
+    enabled: true
+    url: ${ORACLE_DWH_URL:jdbc:oracle:thin:@192.168.102.5:1521:dwh}
+    username: ${ORACLE_DWH_USERNAME:dwh}
+    password: ${ORACLE_DWH_PASSWORD:Bnk$$444}
     driver-class-name: oracle.jdbc.driver.OracleDriver
     maximum-pool-size: 10
     minimum-idle: 3

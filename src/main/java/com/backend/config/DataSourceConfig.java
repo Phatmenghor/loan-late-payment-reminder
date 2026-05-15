@@ -24,4 +24,19 @@ public class DataSourceConfig {
         private long connectionTimeout = 20000;
         private long idleTimeout = 300000;
     }
+
+    @Component
+    @ConfigurationProperties(prefix = "datasource.oracle-dwh")
+    @Data
+    public static class OracleDwhDataSourceProperties {
+        private boolean enabled;
+        private String url;
+        private String username;
+        private String password;
+        private String driverClassName;
+        private int maximumPoolSize = 10;
+        private int minimumIdle = 3;
+        private long connectionTimeout = 20000;
+        private long idleTimeout = 300000;
+    }
 }
