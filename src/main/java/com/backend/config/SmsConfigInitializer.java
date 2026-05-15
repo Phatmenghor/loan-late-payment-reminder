@@ -24,7 +24,7 @@ public class SmsConfigInitializer implements CommandLineRunner {
         String notificationSmsType = "NOTIFICATION_SMS";
 
         String loanLateMessage = "ធនាគារប្រៃសណីយ៍កម្ពុជា ក.អ សូមស្វាគមន៍! សូមលោកអ្នកអញ្ជើញមកបង់ប្រាក់ឲ្យបានទាន់ពេលតាមតារាងសងប្រាក់របស់លោកអ្នក។ សូមអរគុណ 070 200 002";
-        String smsMessage = "សូមអរគុណដែលបានប្រើសេវាកម្មរបស់ធនាគារប្រៃសណីយ៍កម្ពុជា។";
+        String smsMessage = "ធនាគារប្រៃសណីយ៍កម្ពុជា ក.អ សូមស្វាគមន៍! សូមលោកអ្នកអញ្ជើញមកបង់ប្រាក់ឲ្យបានទាន់ពេលតាមតារាងសងប្រាក់របស់លោកអ្នក។ សូមអរគុណ 070 200 002";
 
         // Initialize NOTIFICATION_LOAN_LATE
         if (notificationConfigRepository.findByConfigType(notificationLoanLateType).isEmpty()) {
