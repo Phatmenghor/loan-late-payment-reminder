@@ -20,7 +20,6 @@ import com.backend.features.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -137,14 +136,14 @@ public class NotificationServiceImpl implements NotificationService {
     private int[] processQueuedRecords(LocalDate reportDate) {
         try {
             List<NotificationQueue> recordsToProcess = notificationQueueRepository
-                    .findPendingAndFailureByReportDate(reportDate);
+                    .findByStatusAndReportDate(NotificationConstants.QueueStatus.PENDING, reportDate);
 
             if (recordsToProcess.isEmpty()) {
-                log.info("No pending or failed records to process for {}", reportDate);
+                log.info("No pending records to process for {}", reportDate);
                 return new int[]{0, 0};
             }
 
-            log.info("Starting delivery: {} pending/failed messages in queue", recordsToProcess.size());
+            log.info("Starting delivery: {} pending messages in queue", recordsToProcess.size());
 
             String messageContent = recordsToProcess.get(0).getMessageContent();
             if (messageContent == null) {
@@ -156,16 +155,6 @@ public class NotificationServiceImpl implements NotificationService {
 
             for (NotificationQueue queueRecord : recordsToProcess) {
                 try {
-                    Optional<NotificationQueue> existingSuccess = notificationQueueRepository
-                            .findByCustomerIdAndPhoneAndDateAndSuccess(
-                                    queueRecord.getCustomerId(),
-                                    queueRecord.getPhoneNumber(),
-                                    queueRecord.getReportDate());
-
-                    if (existingSuccess.isPresent()) {
-                        continue;
-                    }
-
                     String apiStatus = sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
 
                     if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
@@ -196,41 +185,14 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void updateQueueStatus(NotificationQueue queueRecord, String status, String failureReason) {
-        int maxRetries = 3;
-        int retryDelayMs = 50;
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                int rowsUpdated = notificationQueueRepository.updateQueueStatusById(
-                        queueRecord.getId(),
-                        status,
-                        LocalDateTime.now(),
-                        failureReason);
-
-                if (rowsUpdated == 0) {
-                    log.warn("Queue record not found for ID: {} (phone: {})",
-                            queueRecord.getId(), queueRecord.getPhoneNumber());
-                }
-                return;
-
-            } catch (OptimisticLockingFailureException e) {
-                if (attempt < maxRetries) {
-                    log.warn("Optimistic lock conflict for {} (attempt {}/{}), retrying...",
-                            queueRecord.getPhoneNumber(), attempt, maxRetries);
-                    try {
-                        Thread.sleep(retryDelayMs);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
-                } else {
-                    log.error("Failed to update queue status after {} attempts for {}: {}",
-                            maxRetries, queueRecord.getPhoneNumber(), e.getMessage());
-                }
-            } catch (Exception e) {
-                log.error("Failed to update queue status for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
-                return;
-            }
+        try {
+            notificationQueueRepository.updateQueueStatusById(
+                    queueRecord.getId(),
+                    status,
+                    LocalDateTime.now(),
+                    failureReason);
+        } catch (Exception e) {
+            log.error("Failed to update queue status for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
         }
     }
 
@@ -241,26 +203,22 @@ public class NotificationServiceImpl implements NotificationService {
             long totalCount = allRecords.size();
             long successCount = totalCount - failureCount;
 
-            if (failureCount == 0 && totalCount > 0) {
-                Optional<NotificationProcessingStatus> existing = notificationProcessingStatusRepository.findByReportDate(reportDate);
+            Optional<NotificationProcessingStatus> existing = notificationProcessingStatusRepository.findByReportDate(reportDate);
 
-                NotificationProcessingStatus status = existing.orElseGet(() -> NotificationProcessingStatus.builder()
-                        .reportDate(reportDate)
-                        .build());
+            NotificationProcessingStatus status = existing.orElseGet(() -> NotificationProcessingStatus.builder()
+                    .reportDate(reportDate)
+                    .build());
 
-                status.setTotalCustomers((int) totalCount);
-                status.setSuccessCount((int) successCount);
-                status.setFailureCount((int) failureCount);
-                status.setIsComplete(true);
-                status.setCompletedAt(LocalDateTime.now());
-                status.setLastCheckedAt(LocalDateTime.now());
-                status.setNotes("All SMS processed successfully from queue");
+            status.setTotalCustomers((int) totalCount);
+            status.setSuccessCount((int) successCount);
+            status.setFailureCount((int) failureCount);
+            status.setIsComplete(true);
+            status.setCompletedAt(LocalDateTime.now());
+            status.setLastCheckedAt(LocalDateTime.now());
+            status.setNotes("Processed: " + successCount + " success, " + failureCount + " failed");
 
-                notificationProcessingStatusRepository.save(status);
-                log.info("Completion recorded: {} messages processed (all successful)", totalCount);
-            } else if (failureCount > 0) {
-                log.info("Completion check: {} successful, {} pending retry", successCount, failureCount);
-            }
+            notificationProcessingStatusRepository.save(status);
+            log.info("Completion recorded: {} success, {} failed", successCount, failureCount);
 
         } catch (Exception e) {
             log.error("Completion check failed: {}", e.getMessage(), e);
