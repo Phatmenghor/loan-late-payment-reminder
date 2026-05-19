@@ -1,6 +1,6 @@
 # Production Configuration
 server:
-  port: ${SERVER_PORT:5050}
+  port: ${SERVER_PORT:6060}
 
 spring:
   datasource:
