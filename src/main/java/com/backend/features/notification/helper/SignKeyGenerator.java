@@ -30,9 +30,9 @@ public class SignKeyGenerator {
     public String generateSignKey(String phone, String content) {
         try {
             String encryptionKey = cpbApiConfig.getEncryptionKey();
-            String signKeyInput = encryptionKey + phone + content;
+            String signKeyInput = encryptionKey + phone + encryptionKey + content + encryptionKey;
             String signKey = hashWithSha256(signKeyInput);
-            log.info("Sign key generated for phone: {} | input pattern: KEY+PHONE+CONTENT | hash: {}", phone, signKey);
+            log.info("Sign key generated for phone: {} | formula: KEY+PHONE+KEY+CONTENT+KEY | hash: {}", phone, signKey);
             return signKey;
         } catch (Exception e) {
             log.error("Failed to generate sign key for phone: {}", phone, e);
