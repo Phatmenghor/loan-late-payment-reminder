@@ -217,11 +217,11 @@ public class NotificationServiceImpl implements NotificationService {
 
                 if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
                     updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS);
                     success++;
                 } else {
                     updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, "API returned failure");
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE);
                     failure++;
                 }
 
@@ -365,7 +365,7 @@ public class NotificationServiceImpl implements NotificationService {
                 + "</soap:Envelope>";
     }
 
-    private void logToPostgresSQL(NotificationQueue queueRecord, String status, String messageContent) {
+    private void logToPostgresSQL(NotificationQueue queueRecord, String status) {
         try {
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(queueRecord.getPhoneNumber())
