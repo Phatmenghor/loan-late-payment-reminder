@@ -1,13 +1,14 @@
 package com.backend.features.notification.service.impl;
 
-import com.backend.config.MobileBankingConfig;
+import com.backend.config.CpbApiConfig;
 import com.backend.config.NotificationAsyncConfig;
 import com.backend.shared.constants.NotificationConstants;
-import com.backend.shared.utils.HttpClientUtil;
 import com.backend.features.notification.dto.LoanLateReminderDto;
+import com.backend.features.notification.dto.ReceptionFormatDto;
 import com.backend.features.notification.dto.SendNotificationRequestDto;
 import com.backend.enums.common.ProcessingResult;
 import com.backend.features.notification.helper.CpbHelper;
+import com.backend.features.notification.helper.NotificationPayloadBuilder;
 import com.backend.features.notification.helper.OracleHelper;
 import com.backend.features.notification.helper.TestDataHelper;
 import com.backend.features.notification.models.NotificationProcessingStatus;
@@ -21,10 +22,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,8 +40,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -46,8 +51,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Value("${spring.profiles.active:}")
     private String activeProfile;
 
-    private final MobileBankingConfig mobileBankingConfig;
-    private final HttpClientUtil httpClientUtil;
+    private final RestTemplate restTemplate;
+    private final NotificationPayloadBuilder payloadBuilder;
+    private final CpbApiConfig cpbApiConfig;
     private final OracleHelper oracleHelper;
     private final TestDataHelper testDataHelper;
     private final NotificationLogRepository notificationLogRepository;
@@ -320,49 +326,38 @@ public class NotificationServiceImpl implements NotificationService {
 
     private String sendSmsToApi(String phoneNumber, String messageContent) {
         try {
-            String otpUrl = mobileBankingConfig.getOtpUrl();
-            String secretKey = mobileBankingConfig.getSecretKey();
-            String requestId = String.valueOf(System.currentTimeMillis());
+            String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
+            String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
 
-            String soapXml = buildSoapRequest(requestId, phoneNumber, messageContent, secretKey);
-            log.info("SMS SOAP call: {} | Phone: {}", otpUrl, phoneNumber);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
 
-            String responseXml = httpClientUtil.postForString(otpUrl, soapXml, "application/soap+xml");
+            log.info("Notification API call: POST {} | Phone: {}", apiUrl, phoneNumber);
 
-            Matcher matcher = Pattern.compile("<(?:\\w+:)?return>(.*?)</(?:\\w+:)?return>").matcher(responseXml);
-            String jsonPayload = matcher.find() ? matcher.group(1) : null;
+            ResponseEntity<ReceptionFormatDto> apiResponse = restTemplate.postForEntity(apiUrl, request, ReceptionFormatDto.class);
 
-            if (jsonPayload != null && jsonPayload.contains("\"rescode\":\"00\"")) {
-                log.info("SMS delivered successfully to {}", phoneNumber);
-                return NotificationConstants.NotificationStatus.SUCCESS;
+            if (apiResponse.getStatusCode().is2xxSuccessful() && apiResponse.getBody() != null) {
+                ReceptionFormatDto body = apiResponse.getBody();
+                String code = body.getCode();
+                String desc = body.getDesc();
+
+                if (code != null && (code.equals("0") || code.equals("00"))) {
+                    log.info("Notification delivered to {}: Code={}, Desc={}", phoneNumber, code, desc);
+                    return NotificationConstants.NotificationStatus.SUCCESS;
+                }
+
+                log.warn("Notification failed for {}: Code={}, Desc={}", phoneNumber, code, desc);
+                return NotificationConstants.NotificationStatus.FAILURE;
             }
 
-            log.warn("SMS delivery failed for {}: response={}", phoneNumber, jsonPayload);
+            log.warn("Notification API error for {} | Status: {}", phoneNumber, apiResponse.getStatusCode());
             return NotificationConstants.NotificationStatus.FAILURE;
 
-        } catch (Exception e) {
-            log.error("SMS SOAP call failed for {}: {}", phoneNumber, e.getMessage());
+        } catch (RestClientException e) {
+            log.error("Notification API call failed for {}: {}", phoneNumber, e.getMessage());
             return NotificationConstants.NotificationStatus.FAILURE;
         }
-    }
-
-    private String buildSoapRequest(String requestId, String phone, String message, String secretKey) {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-                + "<soap:Envelope xmlns:soap='http://www.w3.org/2003/05/soap-envelope' "
-                + "xmlns:cpb='http://cpbmobile.vnpay.vn'>"
-                + "<soap:Header/>"
-                + "<soap:Body>"
-                + "<cpb:sendSmsNew>"
-                + "<cpb:requestId>" + requestId + "</cpb:requestId>"
-                + "<cpb:keyword>CPBSMS</cpb:keyword>"
-                + "<cpb:mobileNo>" + phone + "</cpb:mobileNo>"
-                + "<cpb:content><![CDATA[" + message + "]]></cpb:content>"
-                + "<cpb:requestTime></cpb:requestTime>"
-                + "<cpb:contentType>9</cpb:contentType>"
-                + "<cpb:secretKey>" + secretKey + "</cpb:secretKey>"
-                + "</cpb:sendSmsNew>"
-                + "</soap:Body>"
-                + "</soap:Envelope>";
     }
 
     private void logToPostgresSQL(NotificationQueue queueRecord, String status) {
