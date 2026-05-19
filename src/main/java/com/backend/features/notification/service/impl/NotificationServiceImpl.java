@@ -24,9 +24,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -339,14 +337,4 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Phnom_Penh")
-    @Transactional
-    public void cleanupQueueRecords() {
-        try {
-            int deletedCount = notificationQueueRepository.deleteAllRecords();
-            log.info("Queue cleanup: Deleted {} records at midnight", deletedCount);
-        } catch (Exception e) {
-            log.error("Queue cleanup failed: {}", e.getMessage(), e);
-        }
-    }
 }
