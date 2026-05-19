@@ -308,9 +308,12 @@ public class NotificationServiceImpl implements NotificationService {
         } catch (Exception e) {
             log.error("Test SMS delivery failed: {}", e.getMessage(), e);
 
+            String jsonPayload = payloadBuilder.buildJsonPayload(request.getPhoneNumber(), request.getMessageContent());
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
+                    .jsonPayload(jsonPayload)
                     .notificationStatus(NotificationConstants.NotificationStatus.FAILURE)
+                    .failureReason(e.getMessage())
                     .notificationLogDate(LocalDateTime.now())
                     .build();
             notificationLogRepository.save(smsLog);
