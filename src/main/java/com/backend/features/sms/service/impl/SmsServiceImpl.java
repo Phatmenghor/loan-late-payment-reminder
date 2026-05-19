@@ -155,6 +155,9 @@ public class SmsServiceImpl implements SmsService {
                     }
 
                     String formattedPhone = phoneValidator.formatPhoneNumber(record.getPhone());
+                    log.info("Processing SMS - msgId: {}, phone: {}, messageLength: {}, messagePreview: {}...",
+                            record.getMsgId(), formattedPhone, smsMessage.length(),
+                            smsMessage.length() > 50 ? smsMessage.substring(0, 50) : smsMessage);
                     boolean success = sendSoapSms(formattedPhone, smsMessage, record.getMsgId());
 
                     if (success) {
@@ -200,6 +203,9 @@ public class SmsServiceImpl implements SmsService {
 
         String soapXml = buildSoapRequest(requestId, phone, message, secretKey);
 
+        log.debug("SOAP Request - msgId: {}, phone: {}, msgLength: {}, xml: {}",
+                msgId, phone, message.length(), soapXml);
+
         try {
             String responseXml = httpClientUtil.postForString(otpUrl, soapXml, "application/soap+xml");
 
@@ -209,7 +215,15 @@ public class SmsServiceImpl implements SmsService {
             if (jsonPayload != null && jsonPayload.contains("\"rescode\":\"00\"")) {
                 return true;
             } else {
-                log.warn("SMS send failed - msgId: {}, phone: {}, response: {}", msgId, phone, jsonPayload);
+                String errorCode = "unknown";
+                if (jsonPayload != null && jsonPayload.contains("\"rescode\"")) {
+                    Matcher codeMatch = Pattern.compile("\"rescode\":\"(\\d+)\"").matcher(jsonPayload);
+                    if (codeMatch.find()) {
+                        errorCode = codeMatch.group(1);
+                    }
+                }
+                log.warn("SMS gateway error - msgId: {}, phone: {}, rescode: {}, response: {}",
+                        msgId, phone, errorCode, jsonPayload);
                 return false;
             }
 
@@ -237,6 +251,7 @@ public class SmsServiceImpl implements SmsService {
                 + "</soap:Body>"
                 + "</soap:Envelope>";
     }
+
 
     /**
      * Log SMS to PostgreSQL audit table (never deleted - permanent history)
