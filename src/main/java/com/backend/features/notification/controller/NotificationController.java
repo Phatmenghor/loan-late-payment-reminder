@@ -1,5 +1,6 @@
 package com.backend.features.notification.controller;
 
+import com.backend.enums.common.ProcessingResult;
 import com.backend.features.notification.dto.SendNotificationRequestDto;
 import com.backend.features.notification.service.NotificationService;
 import com.backend.shared.dto.ApiResponse;
@@ -25,6 +26,14 @@ public class NotificationController {
         notificationService.processPendingSmsNotifications();
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ApiResponse.success("Pending SMS notifications are being processed", "ACCEPTED"));
+    }
+
+    @PostMapping("/sms/run-now")
+    public ResponseEntity<ApiResponse<String>> runScheduleNow() {
+        log.info("REST: Manual trigger - running scheduled SMS processing");
+
+        ProcessingResult result = notificationService.processPendingSmsNotifications();
+        return ResponseEntity.ok(ApiResponse.success("Processing complete", result.getDescription()));
     }
 
     @PostMapping("/sms/test")
