@@ -13,114 +13,116 @@ public class NotificationRetrySchedulerService {
 
     private final NotificationServiceImpl notificationService;
 
+    private static final String CAMBODIA_TIMEZONE = "Asia/Phnom_Penh";
+
     // ============ SCHEDULED JOBS ============
 
-    @Scheduled(cron = "0 0 8 * * ?")
+    @Scheduled(cron = "0 0 8 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt8Am() {
         log.info("========== START: SMS Processing at 8:00 AM (Initial COB Check) ==========");
         notificationService.processWithRetry("8:00 AM");
         log.info("========== END: SMS Processing at 8:00 AM ==========");
     }
 
-    @Scheduled(cron = "0 0 9 * * ?")
+    @Scheduled(cron = "0 0 9 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt9Am() {
         log.info("========== START: SMS Processing at 9:00 AM (Retry) ==========");
         notificationService.processWithRetry("9:00 AM");
         log.info("========== END: SMS Processing at 9:00 AM ==========");
     }
 
-    @Scheduled(cron = "0 0 10 * * ?")
+    @Scheduled(cron = "0 0 10 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt10Am() {
         log.info("========== START: SMS Processing at 10:00 AM (Retry) ==========");
         notificationService.processWithRetry("10:00 AM");
         log.info("========== END: SMS Processing at 10:00 AM ==========");
     }
 
-    @Scheduled(cron = "0 0 11 * * ?")
+    @Scheduled(cron = "0 0 11 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt11Am() {
         log.info("========== START: SMS Processing at 11:00 AM (Retry) ==========");
         notificationService.processWithRetry("11:00 AM");
         log.info("========== END: SMS Processing at 11:00 AM ==========");
     }
 
-    @Scheduled(cron = "0 0 12 * * ?")
+    @Scheduled(cron = "0 0 12 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt12Pm() {
         log.info("========== START: SMS Processing at 12:00 PM (Retry) ==========");
         notificationService.processWithRetry("12:00 PM");
         log.info("========== END: SMS Processing at 12:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 13 * * ?")
+    @Scheduled(cron = "0 0 13 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt1Pm() {
         log.info("========== START: SMS Processing at 1:00 PM (Retry) ==========");
         notificationService.processWithRetry("1:00 PM");
         log.info("========== END: SMS Processing at 1:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 14 * * ?")
+    @Scheduled(cron = "0 0 14 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt2Pm() {
         log.info("========== START: SMS Processing at 2:00 PM (Retry) ==========");
         notificationService.processWithRetry("2:00 PM");
         log.info("========== END: SMS Processing at 2:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 15 * * ?")
+    @Scheduled(cron = "0 0 15 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt3Pm() {
         log.info("========== START: SMS Processing at 3:00 PM (Retry) ==========");
         notificationService.processWithRetry("3:00 PM");
         log.info("========== END: SMS Processing at 3:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 16 * * ?")
+    @Scheduled(cron = "0 0 16 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt4Pm() {
         log.info("========== START: SMS Processing at 4:00 PM (Retry) ==========");
         notificationService.processWithRetry("4:00 PM");
         log.info("========== END: SMS Processing at 4:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 17 * * ?")
+    @Scheduled(cron = "0 0 17 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt5Pm() {
         log.info("========== START: SMS Processing at 5:00 PM (Retry) ==========");
         notificationService.processWithRetry("5:00 PM");
         log.info("========== END: SMS Processing at 5:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 18 * * ?")
+    @Scheduled(cron = "0 0 18 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt6Pm() {
         log.info("========== START: SMS Processing at 6:00 PM (Retry) ==========");
         notificationService.processWithRetry("6:00 PM");
         log.info("========== END: SMS Processing at 6:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 19 * * ?")
+    @Scheduled(cron = "0 0 19 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt7Pm() {
         log.info("========== START: SMS Processing at 7:00 PM (Retry) ==========");
         notificationService.processWithRetry("7:00 PM");
         log.info("========== END: SMS Processing at 7:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 20 * * ?")
+    @Scheduled(cron = "0 0 20 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt8Pm() {
         log.info("========== START: SMS Processing at 8:00 PM (Retry) ==========");
         notificationService.processWithRetry("8:00 PM");
         log.info("========== END: SMS Processing at 8:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 21 * * ?")
+    @Scheduled(cron = "0 0 21 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt9Pm() {
         log.info("========== START: SMS Processing at 9:00 PM (Retry) ==========");
         notificationService.processWithRetry("9:00 PM");
         log.info("========== END: SMS Processing at 9:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 22 * * ?")
+    @Scheduled(cron = "0 0 22 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt10Pm() {
         log.info("========== START: SMS Processing at 10:00 PM (Retry) ==========");
         notificationService.processWithRetry("10:00 PM");
         log.info("========== END: SMS Processing at 10:00 PM ==========");
     }
 
-    @Scheduled(cron = "0 0 23 * * ?")
+    @Scheduled(cron = "0 0 23 * * ?", zone = CAMBODIA_TIMEZONE)
     public void scheduleProcessAt11Pm() {
         log.info("========== START: SMS Processing at 11:00 PM (Final Retry) ==========");
         notificationService.processWithRetry("11:00 PM");
