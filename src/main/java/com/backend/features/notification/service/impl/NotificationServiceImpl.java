@@ -202,7 +202,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Async("notificationExecutor")
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public CompletableFuture<int[]> processSingleBatchAsync(List<NotificationQueue> batch, String messageContent) {
         int success = 0;
         int failure = 0;
