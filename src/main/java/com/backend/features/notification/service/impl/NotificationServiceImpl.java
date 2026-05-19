@@ -223,11 +223,11 @@ public class NotificationServiceImpl implements NotificationService {
 
                 if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
                     updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS);
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
                     success++;
                 } else {
                     updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, "API returned failure");
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE);
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
                     failure++;
                 }
 
@@ -235,7 +235,7 @@ public class NotificationServiceImpl implements NotificationService {
                 failure++;
                 log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
                 updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, e.getMessage());
-                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE);
+                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
             }
         }
 
@@ -360,13 +360,16 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private void logToPostgresSQL(NotificationQueue queueRecord, String status) {
+    private void logToPostgresSQL(NotificationQueue queueRecord, String status, String messageContent) {
         try {
+            String jsonPayload = payloadBuilder.buildJsonPayload(queueRecord.getPhoneNumber(), messageContent);
+
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(queueRecord.getPhoneNumber())
                     .customerId(queueRecord.getCustomerId())
                     .reportDate(queueRecord.getReportDate())
                     .arrangementId(queueRecord.getArrangementId())
+                    .jsonPayload(jsonPayload)
                     .notificationStatus(status)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
@@ -383,10 +386,12 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("Test endpoint invoked for {}", request.getPhoneNumber());
 
         try {
+            String jsonPayload = payloadBuilder.buildJsonPayload(request.getPhoneNumber(), request.getMessageContent());
             String result = sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
 
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
+                    .jsonPayload(jsonPayload)
                     .notificationStatus(result)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
