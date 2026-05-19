@@ -372,7 +372,6 @@ public class NotificationServiceImpl implements NotificationService {
                     .customerId(queueRecord.getCustomerId())
                     .reportDate(queueRecord.getReportDate())
                     .arrangementId(queueRecord.getArrangementId())
-                    .messageContent(messageContent)
                     .notificationStatus(status)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
@@ -393,7 +392,6 @@ public class NotificationServiceImpl implements NotificationService {
 
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
-                    .messageContent(request.getMessageContent())
                     .notificationStatus(result)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
@@ -407,7 +405,6 @@ public class NotificationServiceImpl implements NotificationService {
 
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
-                    .messageContent(request.getMessageContent())
                     .notificationStatus(NotificationConstants.NotificationStatus.FAILURE)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
