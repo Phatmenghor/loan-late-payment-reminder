@@ -1,7 +1,6 @@
 package com.backend.features.notification.service.impl;
 
 import com.backend.config.CpbApiConfig;
-import com.backend.config.NotificationAsyncConfig;
 import com.backend.shared.constants.NotificationConstants;
 import com.backend.features.notification.dto.LoanLateReminderDto;
 import com.backend.features.notification.dto.ReceptionFormatDto;
@@ -26,7 +25,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,18 +33,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class NotificationServiceImpl implements NotificationService {
-
 
     @Value("${spring.profiles.active:}")
     private String activeProfile;
@@ -60,7 +53,6 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationProcessingStatusRepository notificationProcessingStatusRepository;
     private final NotificationQueueRepository notificationQueueRepository;
     private final CpbHelper cpbHelper;
-    private final NotificationAsyncConfig notificationAsyncConfig;
 
     @Override
     public ProcessingResult processPendingSmsNotifications() {
@@ -99,7 +91,6 @@ public class NotificationServiceImpl implements NotificationService {
                 log.info("Queue reuse: {} records already queued for {}", existingQueue.size(), reportDate);
             }
 
-
             int[] counts = processQueuedRecords(reportDate);
             int successCount = counts[0];
             int failureCount = counts[1];
@@ -124,7 +115,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     private void storeRecordsToQueue(List<LoanLateReminderDto> records, String messageContent, LocalDate reportDate) {
         try {
-
             for (LoanLateReminderDto record : records) {
                 NotificationQueue queueRecord = NotificationQueue.builder()
                         .customerId(record.getCustomerId())
@@ -135,10 +125,8 @@ public class NotificationServiceImpl implements NotificationService {
                         .status(NotificationConstants.QueueStatus.PENDING)
                         .retryCount(0)
                         .build();
-
                 notificationQueueRepository.save(queueRecord);
             }
-
             log.info("Queued: {} records added with status=PENDING", records.size());
         } catch (Exception e) {
             log.error("Queue persistence failed: {}", e.getMessage(), e);
@@ -163,85 +151,49 @@ public class NotificationServiceImpl implements NotificationService {
                 messageContent = cpbHelper.getContentDescription();
             }
 
-            int[] counts = processBatchAsync(recordsToProcess, messageContent);
-            log.info("Delivery batch complete: {} successful, {} failed", counts[0], counts[1]);
+            int success = 0;
+            int failure = 0;
 
-            return counts;
+            for (NotificationQueue queueRecord : recordsToProcess) {
+                try {
+                    Optional<NotificationQueue> existingSuccess = notificationQueueRepository
+                            .findByCustomerIdAndPhoneAndDateAndSuccess(
+                                    queueRecord.getCustomerId(),
+                                    queueRecord.getPhoneNumber(),
+                                    queueRecord.getReportDate());
+
+                    if (existingSuccess.isPresent()) {
+                        continue;
+                    }
+
+                    String apiStatus = sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
+
+                    if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
+                        updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
+                        logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
+                        success++;
+                    } else {
+                        updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, "API returned failure");
+                        logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                        failure++;
+                    }
+
+                } catch (Exception e) {
+                    failure++;
+                    log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
+                    updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, e.getMessage());
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                }
+            }
+
+            log.info("Delivery complete: {} successful, {} failed", success, failure);
+            return new int[]{success, failure};
+
         } catch (Exception e) {
             log.error("Queue processing aborted: {}", e.getMessage(), e);
             return new int[]{0, 0};
         }
     }
-
-    private int[] processBatchAsync(List<NotificationQueue> records, String messageContent) {
-        int batchSize = notificationAsyncConfig.getBatchSize();
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failureCount = new AtomicInteger(0);
-        List<CompletableFuture<int[]>> futures = new ArrayList<>();
-
-        for (int i = 0; i < records.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, records.size());
-            List<NotificationQueue> batch = records.subList(i, endIndex);
-
-            CompletableFuture<int[]> future = processSingleBatchAsync(batch, messageContent);
-            futures.add(future);
-        }
-
-        for (CompletableFuture<int[]> future : futures) {
-            try {
-                int[] counts = future.get();
-                successCount.addAndGet(counts[0]);
-                failureCount.addAndGet(counts[1]);
-            } catch (Exception e) {
-                log.error("Async batch processing error: {}", e.getMessage(), e);
-                failureCount.incrementAndGet();
-            }
-        }
-
-        return new int[]{successCount.get(), failureCount.get()};
-    }
-
-    @Async("notificationExecutor")
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
-    public CompletableFuture<int[]> processSingleBatchAsync(List<NotificationQueue> batch, String messageContent) {
-        int success = 0;
-        int failure = 0;
-
-        for (NotificationQueue queueRecord : batch) {
-            try {
-                Optional<NotificationQueue> existingSuccess = notificationQueueRepository
-                        .findByCustomerIdAndPhoneAndDateAndSuccess(
-                                queueRecord.getCustomerId(),
-                                queueRecord.getPhoneNumber(),
-                                queueRecord.getReportDate());
-
-                if (existingSuccess.isPresent()) {
-                    continue;
-                }
-
-                String apiStatus = sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
-
-                if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
-                    updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
-                    success++;
-                } else {
-                    updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, "API returned failure");
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
-                    failure++;
-                }
-
-            } catch (Exception e) {
-                failure++;
-                log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
-                updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, e.getMessage());
-                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
-            }
-        }
-
-        return CompletableFuture.completedFuture(new int[]{success, failure});
-    }
-
 
     private void updateQueueStatus(NotificationQueue queueRecord, String status, String failureReason) {
         int maxRetries = 3;
@@ -249,24 +201,17 @@ public class NotificationServiceImpl implements NotificationService {
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                LocalDateTime now = LocalDateTime.now();
-
-                // Use direct UPDATE query to avoid optimistic lock conflicts
                 int rowsUpdated = notificationQueueRepository.updateQueueStatusById(
                         queueRecord.getId(),
                         status,
-                        now,
+                        LocalDateTime.now(),
                         failureReason);
 
-                if (rowsUpdated > 0) {
-                    log.debug("Queue status updated successfully for {}: {} (attempt {})",
-                            queueRecord.getPhoneNumber(), status, attempt);
-                    return;
-                } else {
+                if (rowsUpdated == 0) {
                     log.warn("Queue record not found for ID: {} (phone: {})",
                             queueRecord.getId(), queueRecord.getPhoneNumber());
-                    return;
                 }
+                return;
 
             } catch (OptimisticLockingFailureException e) {
                 if (attempt < maxRetries) {
@@ -276,14 +221,12 @@ public class NotificationServiceImpl implements NotificationService {
                         Thread.sleep(retryDelayMs);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        log.error("Retry interrupted for {}: {}", queueRecord.getPhoneNumber(), ie.getMessage());
                         return;
                     }
                 } else {
                     log.error("Failed to update queue status after {} attempts for {}: {}",
                             maxRetries, queueRecord.getPhoneNumber(), e.getMessage());
                 }
-
             } catch (Exception e) {
                 log.error("Failed to update queue status for {}: {}", queueRecord.getPhoneNumber(), e.getMessage(), e);
                 return;
