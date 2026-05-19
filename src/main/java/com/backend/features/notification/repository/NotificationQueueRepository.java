@@ -61,9 +61,6 @@ public interface NotificationQueueRepository extends BaseRepository<Notification
 
     @Modifying
     @Transactional
-    @Query(value = """
-            DELETE FROM notification_queue
-            WHERE status = 'SUCCESS' AND created_at < :twoDaysAgo AND is_deleted = false
-            """, nativeQuery = true)
-    int deleteSuccessfulRecordsOlderThan(@Param("twoDaysAgo") LocalDateTime twoDaysAgo);
+    @Query(value = "DELETE FROM notification_queue", nativeQuery = true)
+    int deleteAllRecords();
 }

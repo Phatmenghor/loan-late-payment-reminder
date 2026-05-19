@@ -339,19 +339,12 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Phnom_Penh")
     @Transactional
-    public void cleanupOldQueueRecords() {
+    public void cleanupQueueRecords() {
         try {
-            LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
-            int deletedCount = notificationQueueRepository.deleteSuccessfulRecordsOlderThan(twoDaysAgo);
-
-            if (deletedCount > 0) {
-                log.info("Queue cleanup: Deleted {} successful records older than 2 days", deletedCount);
-            } else {
-                log.debug("Queue cleanup: No old records to delete");
-            }
-
+            int deletedCount = notificationQueueRepository.deleteAllRecords();
+            log.info("Queue cleanup: Deleted {} records at midnight", deletedCount);
         } catch (Exception e) {
             log.error("Queue cleanup failed: {}", e.getMessage(), e);
         }
