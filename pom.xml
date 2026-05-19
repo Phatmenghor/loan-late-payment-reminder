@@ -164,7 +164,7 @@
 
 	<build>
 
-		<finalName>loan_late_payment_reminder</finalName>
+		<finalName>notification_service_reminder</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
