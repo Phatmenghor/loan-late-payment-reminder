@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 
 @Component
 @RequiredArgsConstructor
@@ -38,27 +39,20 @@ public class SignKeyGenerator {
     }
 
     public String hashWithSha256(String input) {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(input.getBytes());
-            byte[] hashBytes = messageDigest.digest();
-            return convertBytesToHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            log.error("SHA-256 algorithm not available", e);
-            throw new RuntimeException("SHA-256 algorithm not available", e);
-        }
+        return hash(input, "SHA-256");
     }
 
-    private String createPayload(String phone, String content) {
-        JSONObject jsonObject = new JSONObject();
+    public String hashWithMd5(String input) {
+        return hash(input, "MD5");
+    }
+
+    private String hash(String input, String algorithm) {
         try {
-            jsonObject.put("phone", phone);
-            jsonObject.put("content", content);
-            jsonObject.put("key", cpbApiConfig.getEncryptionKey());
-            return jsonObject.toString();
-        } catch (JSONException e) {
-            log.error("Error creating JSON payload", e);
-            throw new RuntimeException("Failed to create JSON payload", e);
+            MessageDigest md = MessageDigest.getInstance(algorithm);
+            byte[] hashBytes = md.digest(input.getBytes(StandardCharsets.UTF_8));
+            return convertBytesToHex(hashBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(algorithm + " not available", e);
         }
     }
 

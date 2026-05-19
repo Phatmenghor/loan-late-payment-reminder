@@ -56,19 +56,32 @@ public class NotificationController {
         String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
         String key = cpbApiConfig.getEncryptionKey();
 
-        // Show all common sign key formula variants
-        java.util.LinkedHashMap<String, String> variants = new java.util.LinkedHashMap<>();
-        variants.put("KEY+PHONE+CONTENT",           signKeyGenerator.hashWithSha256(key + phone + content));
-        variants.put("PHONE+CONTENT+KEY",           signKeyGenerator.hashWithSha256(phone + content + key));
-        variants.put("KEY+CONTENT+PHONE",           signKeyGenerator.hashWithSha256(key + content + phone));
-        variants.put("PHONE+KEY+CONTENT",           signKeyGenerator.hashWithSha256(phone + key + content));
-        variants.put("CONTENT+PHONE+KEY",           signKeyGenerator.hashWithSha256(content + phone + key));
-        variants.put("CONTENT+KEY+PHONE",           signKeyGenerator.hashWithSha256(content + key + phone));
-        variants.put("KEY+PHONE",                   signKeyGenerator.hashWithSha256(key + phone));
-        variants.put("PHONE+KEY",                   signKeyGenerator.hashWithSha256(phone + key));
-        variants.put("KEY+PHONE+KEY+CONTENT+KEY",   signKeyGenerator.hashWithSha256(key + phone + key + content + key));
+        // phone with 855 country code (strip leading 0, add 855)
+        String phone855 = "855" + phone.replaceFirst("^0", "");
 
-        log.info("Sign key variants for phone {}: {}", phone, variants);
+        // SHA-256 variants
+        java.util.LinkedHashMap<String, String> variants = new java.util.LinkedHashMap<>();
+        variants.put("SHA256|KEY+PHONE+CONTENT",          signKeyGenerator.hashWithSha256(key + phone + content));
+        variants.put("SHA256|PHONE+CONTENT+KEY",          signKeyGenerator.hashWithSha256(phone + content + key));
+        variants.put("SHA256|KEY+CONTENT+PHONE",          signKeyGenerator.hashWithSha256(key + content + phone));
+        variants.put("SHA256|PHONE+KEY+CONTENT",          signKeyGenerator.hashWithSha256(phone + key + content));
+        variants.put("SHA256|CONTENT+PHONE+KEY",          signKeyGenerator.hashWithSha256(content + phone + key));
+        variants.put("SHA256|KEY+PHONE",                  signKeyGenerator.hashWithSha256(key + phone));
+        variants.put("SHA256|PHONE+KEY",                  signKeyGenerator.hashWithSha256(phone + key));
+        // SHA-256 with 855 phone format
+        variants.put("SHA256|KEY+855PHONE+CONTENT",       signKeyGenerator.hashWithSha256(key + phone855 + content));
+        variants.put("SHA256|KEY+855PHONE",               signKeyGenerator.hashWithSha256(key + phone855));
+        variants.put("SHA256|855PHONE+KEY",               signKeyGenerator.hashWithSha256(phone855 + key));
+        // MD5 variants
+        variants.put("MD5|KEY+PHONE+CONTENT",             signKeyGenerator.hashWithMd5(key + phone + content));
+        variants.put("MD5|PHONE+CONTENT+KEY",             signKeyGenerator.hashWithMd5(phone + content + key));
+        variants.put("MD5|KEY+CONTENT+PHONE",             signKeyGenerator.hashWithMd5(key + content + phone));
+        variants.put("MD5|KEY+PHONE",                     signKeyGenerator.hashWithMd5(key + phone));
+        variants.put("MD5|PHONE+KEY",                     signKeyGenerator.hashWithMd5(phone + key));
+        variants.put("MD5|KEY+855PHONE+CONTENT",          signKeyGenerator.hashWithMd5(key + phone855 + content));
+        variants.put("MD5|KEY+855PHONE",                  signKeyGenerator.hashWithMd5(key + phone855));
+
+        log.info("Sign key variants for phone {} (855 format: {}): {}", phone, phone855, variants);
 
         String currentSignKey = signKeyGenerator.generateSignKey(phone, content);
         String payload = payloadBuilder.buildJsonPayload(phone, content);
