@@ -155,15 +155,17 @@ public class NotificationServiceImpl implements NotificationService {
 
             for (NotificationQueue queueRecord : recordsToProcess) {
                 try {
-                    String apiStatus = sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
+                    String[] result = sendSmsToApi(queueRecord.getPhoneNumber(), messageContent);
+                    String apiStatus = result[0];
+                    String apiMessage = result[1];
 
                     if (NotificationConstants.NotificationStatus.SUCCESS.equals(apiStatus)) {
                         updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.SUCCESS, null);
-                        logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent);
+                        logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.SUCCESS, messageContent, null);
                         success++;
                     } else {
-                        updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, "API returned failure");
-                        logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                        updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, apiMessage);
+                        logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent, apiMessage);
                         failure++;
                     }
 
@@ -171,7 +173,7 @@ public class NotificationServiceImpl implements NotificationService {
                     failure++;
                     log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
                     updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, e.getMessage());
-                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                    logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent, e.getMessage());
                 }
             }
 
@@ -225,7 +227,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    private String sendSmsToApi(String phoneNumber, String messageContent) {
+    private String[] sendSmsToApi(String phoneNumber, String messageContent) {
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(phoneNumber, messageContent);
             String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
@@ -245,23 +247,23 @@ public class NotificationServiceImpl implements NotificationService {
 
                 if (code != null && (code.equals("0") || code.equals("00"))) {
                     log.info("Notification delivered to {}: Code={}, Desc={}", phoneNumber, code, desc);
-                    return NotificationConstants.NotificationStatus.SUCCESS;
+                    return new String[]{NotificationConstants.NotificationStatus.SUCCESS, null};
                 }
 
                 log.warn("Notification failed for {}: Code={}, Desc={}", phoneNumber, code, desc);
-                return NotificationConstants.NotificationStatus.FAILURE;
+                return new String[]{NotificationConstants.NotificationStatus.FAILURE, "Code=" + code + ", Desc=" + desc};
             }
 
             log.warn("Notification API error for {} | Status: {}", phoneNumber, apiResponse.getStatusCode());
-            return NotificationConstants.NotificationStatus.FAILURE;
+            return new String[]{NotificationConstants.NotificationStatus.FAILURE, "HTTP " + apiResponse.getStatusCode()};
 
         } catch (RestClientException e) {
             log.error("Notification API call failed for {}: {}", phoneNumber, e.getMessage());
-            return NotificationConstants.NotificationStatus.FAILURE;
+            return new String[]{NotificationConstants.NotificationStatus.FAILURE, e.getMessage()};
         }
     }
 
-    private void logToPostgresSQL(NotificationQueue queueRecord, String status, String messageContent) {
+    private void logToPostgresSQL(NotificationQueue queueRecord, String status, String messageContent, String failureReason) {
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(queueRecord.getPhoneNumber(), messageContent);
 
@@ -272,6 +274,7 @@ public class NotificationServiceImpl implements NotificationService {
                     .arrangementId(queueRecord.getArrangementId())
                     .jsonPayload(jsonPayload)
                     .notificationStatus(status)
+                    .failureReason(failureReason)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
 
@@ -288,18 +291,21 @@ public class NotificationServiceImpl implements NotificationService {
 
         try {
             String jsonPayload = payloadBuilder.buildJsonPayload(request.getPhoneNumber(), request.getMessageContent());
-            String result = sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
+            String[] result = sendSmsToApi(request.getPhoneNumber(), request.getMessageContent());
+            String status = result[0];
+            String apiMessage = result[1];
 
             NotificationLog smsLog = NotificationLog.builder()
                     .phoneNumber(request.getPhoneNumber())
                     .jsonPayload(jsonPayload)
-                    .notificationStatus(result)
+                    .notificationStatus(status)
+                    .failureReason(apiMessage)
                     .notificationLogDate(LocalDateTime.now())
                     .build();
             notificationLogRepository.save(smsLog);
 
-            log.info("Test SMS result for {}: {}", request.getPhoneNumber(), result);
-            return result;
+            log.info("Test SMS result for {}: {}", request.getPhoneNumber(), status);
+            return status;
 
         } catch (Exception e) {
             log.error("Test SMS delivery failed: {}", e.getMessage(), e);

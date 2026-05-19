@@ -41,6 +41,9 @@ public class NotificationLog extends BaseUUIDEntity {
     @Column(name = "notification_status", nullable = false)
     private String notificationStatus;
 
+    @Column(name = "failure_reason")
+    private String failureReason;
+
     @Column(name = "notification_log_date")
     private LocalDateTime notificationLogDate;
 }
