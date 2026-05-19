@@ -53,13 +53,27 @@ public class NotificationController {
 
         String phone = request.getPhoneNumber();
         String content = request.getMessageContent();
-        String signKey = signKeyGenerator.generateSignKey(phone, content);
-        String payload = payloadBuilder.buildJsonPayload(phone, content);
         String apiUrl = cpbApiConfig.getUrl() + "/SendOTT";
+        String key = cpbApiConfig.getEncryptionKey();
+
+        // Show all common sign key formula variants
+        java.util.LinkedHashMap<String, String> variants = new java.util.LinkedHashMap<>();
+        variants.put("KEY+PHONE+CONTENT",           signKeyGenerator.hashWithSha256(key + phone + content));
+        variants.put("PHONE+CONTENT+KEY",           signKeyGenerator.hashWithSha256(phone + content + key));
+        variants.put("KEY+CONTENT+PHONE",           signKeyGenerator.hashWithSha256(key + content + phone));
+        variants.put("PHONE+KEY+CONTENT",           signKeyGenerator.hashWithSha256(phone + key + content));
+        variants.put("CONTENT+PHONE+KEY",           signKeyGenerator.hashWithSha256(content + phone + key));
+        variants.put("CONTENT+KEY+PHONE",           signKeyGenerator.hashWithSha256(content + key + phone));
+        variants.put("KEY+PHONE",                   signKeyGenerator.hashWithSha256(key + phone));
+        variants.put("PHONE+KEY",                   signKeyGenerator.hashWithSha256(phone + key));
+        variants.put("KEY+PHONE+KEY+CONTENT+KEY",   signKeyGenerator.hashWithSha256(key + phone + key + content + key));
+
+        log.info("Sign key variants for phone {}: {}", phone, variants);
+
+        String currentSignKey = signKeyGenerator.generateSignKey(phone, content);
+        String payload = payloadBuilder.buildJsonPayload(phone, content);
 
         String apiResponse = null;
-        String apiCode = null;
-        String apiDesc = null;
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -73,13 +87,15 @@ public class NotificationController {
 
         DebugSignKeyResponse debug = DebugSignKeyResponse.builder()
                 .phone(phone)
-                .signKey(signKey)
-                .signKeyFormula("SHA256( KEY + PHONE + CONTENT )")
-                .payload(payload)
+                .content(content)
                 .apiUrl(apiUrl)
+                .signKeyVariants(variants)
+                .currentFormula("KEY+PHONE+CONTENT")
+                .currentSignKey(currentSignKey)
+                .payload(payload)
                 .apiResponse(apiResponse)
                 .build();
 
-        return ResponseEntity.ok(ApiResponse.success("Debug info", debug));
+        return ResponseEntity.ok(ApiResponse.success("Debug info — share signKeyVariants with API team to identify correct formula", debug));
     }
 }
