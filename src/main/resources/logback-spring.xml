@@ -2,14 +2,14 @@
 <configuration>
     <property name="LOG_PATH" value="logs" />
     <property name="LOG_FILE_NAME" value="sms-loan-late" />
-    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Phnom_Penh} [%thread] %-5level %logger{36} - %msg%n" />
     <property name="MAX_FILE_SIZE" value="512MB" />
     <timestamp key="byDay" datePattern="yyyy-MM-dd" />
     <springProperty scope="context" name="springProfile" source="spring.profiles.active" defaultValue="dev" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{20} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS, Asia/Phnom_Penh} [%thread] %-5level %logger{20} - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -19,7 +19,7 @@
             <level>ERROR</level>
         </filter>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS, Asia/Phnom_Penh} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
