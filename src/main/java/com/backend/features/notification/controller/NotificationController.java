@@ -80,6 +80,18 @@ public class NotificationController {
         variants.put("MD5|PHONE+KEY",                     signKeyGenerator.hashWithMd5(phone + key));
         variants.put("MD5|KEY+855PHONE+CONTENT",          signKeyGenerator.hashWithMd5(key + phone855 + content));
         variants.put("MD5|KEY+855PHONE",                  signKeyGenerator.hashWithMd5(key + phone855));
+        // HMAC-SHA256 variants (key=encryptionKey, message=data)
+        variants.put("HMAC256|KEY,PHONE+CONTENT",         signKeyGenerator.hmacSha256(key, phone + content));
+        variants.put("HMAC256|KEY,CONTENT+PHONE",         signKeyGenerator.hmacSha256(key, content + phone));
+        variants.put("HMAC256|KEY,PHONE",                 signKeyGenerator.hmacSha256(key, phone));
+        variants.put("HMAC256|KEY,855PHONE+CONTENT",      signKeyGenerator.hmacSha256(key, phone855 + content));
+        variants.put("HMAC256|KEY,855PHONE",              signKeyGenerator.hmacSha256(key, phone855));
+        // HMAC-MD5 variants
+        variants.put("HMACMD5|KEY,PHONE+CONTENT",         signKeyGenerator.hmacMd5(key, phone + content));
+        variants.put("HMACMD5|KEY,CONTENT+PHONE",         signKeyGenerator.hmacMd5(key, content + phone));
+        variants.put("HMACMD5|KEY,PHONE",                 signKeyGenerator.hmacMd5(key, phone));
+        variants.put("HMACMD5|KEY,855PHONE+CONTENT",      signKeyGenerator.hmacMd5(key, phone855 + content));
+        variants.put("HMACMD5|KEY,855PHONE",              signKeyGenerator.hmacMd5(key, phone855));
 
         log.info("Sign key variants for phone {} (855 format: {}): {}", phone, phone855, variants);
 

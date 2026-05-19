@@ -16,6 +16,8 @@ import org.springframework.web.client.RestTemplate;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 @Component
 @RequiredArgsConstructor
@@ -53,6 +55,26 @@ public class SignKeyGenerator {
             return convertBytesToHex(hashBytes);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(algorithm + " not available", e);
+        }
+    }
+
+    public String hmacSha256(String secretKey, String message) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            return convertBytesToHex(mac.doFinal(message.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new RuntimeException("HmacSHA256 failed", e);
+        }
+    }
+
+    public String hmacMd5(String secretKey, String message) {
+        try {
+            Mac mac = Mac.getInstance("HmacMD5");
+            mac.init(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacMD5"));
+            return convertBytesToHex(mac.doFinal(message.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new RuntimeException("HmacMD5 failed", e);
         }
     }
 
