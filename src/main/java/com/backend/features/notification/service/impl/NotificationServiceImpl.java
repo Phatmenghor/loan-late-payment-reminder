@@ -229,7 +229,7 @@ public class NotificationServiceImpl implements NotificationService {
                 failure++;
                 log.warn("Delivery failed for {}: {}", queueRecord.getPhoneNumber(), e.getMessage());
                 updateQueueStatus(queueRecord, NotificationConstants.QueueStatus.FAILURE, e.getMessage());
-                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE, messageContent);
+                logToPostgresSQL(queueRecord, NotificationConstants.NotificationStatus.FAILURE);
             }
         }
 
