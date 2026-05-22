@@ -1,7 +1,9 @@
 package com.backend.features.auth.service.impl;
 
+import com.backend.features.auth.dto.AdUserDto;
 import com.backend.features.auth.dto.LoginRequest;
 import com.backend.features.auth.dto.LoginResponse;
+import com.backend.features.auth.mapper.AdMapper;
 import com.backend.features.auth.model.AdLog;
 import com.backend.features.auth.repository.AdConfigRepository;
 import com.backend.features.auth.repository.AdLogRepository;
@@ -35,6 +37,7 @@ public class AdAuthServiceImpl implements AdAuthService {
 
     private final AdConfigRepository adConfigRepository;
     private final AdLogRepository adLogRepository;
+    private final AdMapper adMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -47,17 +50,21 @@ public class AdAuthServiceImpl implements AdAuthService {
                 .orElse(true);
 
         if (!adEnabled) {
+            log.info("AD disabled - bypassing authentication for user: {}", username);
             saveLog(username, true, null, null);
-            return LoginResponse.success(Map.of(), "AD disabled - login bypassed");
+            return LoginResponse.success(null, "AD disabled - login bypassed");
         }
 
         try {
+            log.info("AD authentication attempt for user: {}", username);
             LdapContext ctx = connectToAd(username, password);
             Map<String, Object> attrs = searchUserAttributes(ctx, username);
+            AdUserDto adUser = adMapper.toAdUserDto(attrs);
             saveLog(username, true, null, attrs);
-            return LoginResponse.success(attrs);
+            log.info("AD authentication successful for user: {}", username);
+            return LoginResponse.success(adUser);
         } catch (NamingException e) {
-            log.warn("LDAP authentication failed for user {}: {}", username, e.getMessage());
+            log.warn("AD authentication failed for user {}: {}", username, e.getMessage());
             saveLog(username, false, e.getMessage(), null);
             return LoginResponse.failure("Authentication failed: " + e.getMessage());
         } catch (Exception e) {
@@ -116,17 +123,17 @@ public class AdAuthServiceImpl implements AdAuthService {
             try {
                 attrsJson = objectMapper.writeValueAsString(attrs);
             } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize AD attributes to JSON for user {}: {}", username, e.getMessage());
+                log.warn("Failed to serialize AD attributes for user {}: {}", username, e.getMessage());
             }
         }
 
-        AdLog log = AdLog.builder()
+        AdLog adLog = AdLog.builder()
                 .username(username)
                 .success(success)
                 .failureReason(failureReason)
                 .adAttributes(attrsJson)
                 .calledAt(LocalDateTime.now())
                 .build();
-        adLogRepository.save(log);
+        adLogRepository.save(adLog);
     }
 }
