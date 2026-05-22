@@ -16,7 +16,7 @@ public interface AdMapper {
     @Mapping(target = "id", source = "id")
     AdLogResponse toAdLogResponse(AdLog adLog);
 
-    @Mapping(target = "sAMAccountName",   expression = "java(str(attrs, \"sAMAccountName\"))")
+    @Mapping(target = "samaccountName",    expression = "java(str(attrs, \"sAMAccountName\"))")
     @Mapping(target = "displayName",      expression = "java(str(attrs, \"displayName\"))")
     @Mapping(target = "cn",               expression = "java(str(attrs, \"cn\"))")
     @Mapping(target = "givenName",        expression = "java(str(attrs, \"givenName\"))")

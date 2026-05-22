@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AdUserDto {
-    private String sAMAccountName;
+    private String samaccountName;
     private String displayName;
     private String cn;
     private String givenName;
