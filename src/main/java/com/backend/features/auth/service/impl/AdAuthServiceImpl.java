@@ -65,12 +65,12 @@ public class AdAuthServiceImpl implements AdAuthService {
             return LoginResponse.success(adUser);
         } catch (NamingException e) {
             log.warn("AD authentication failed for user {}: {}", username, e.getMessage());
-            saveLog(username, false, e.getMessage(), null);
-            return LoginResponse.failure("Authentication failed: " + e.getMessage());
+            saveLog(username, false, sanitize(e.getMessage()), null);
+            return LoginResponse.failure("Invalid username or password");
         } catch (Exception e) {
             log.error("Unexpected error during AD authentication for user {}: {}", username, e.getMessage(), e);
-            saveLog(username, false, e.getMessage(), null);
-            return LoginResponse.failure("Unexpected error: " + e.getMessage());
+            saveLog(username, false, sanitize(e.getMessage()), null);
+            return LoginResponse.failure("Authentication service unavailable");
         }
     }
 
@@ -135,5 +135,10 @@ public class AdAuthServiceImpl implements AdAuthService {
                 .calledAt(LocalDateTime.now())
                 .build();
         adLogRepository.save(adLog);
+    }
+
+    private String sanitize(String message) {
+        if (message == null) return null;
+        return message.replace("\u0000", "").trim();
     }
 }
