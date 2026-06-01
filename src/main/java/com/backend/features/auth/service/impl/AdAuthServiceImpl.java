@@ -66,6 +66,10 @@ public class AdAuthServiceImpl implements AdAuthService {
         } catch (NamingException e) {
             log.warn("AD authentication failed for user {}: {}", username, e.getMessage());
             saveLog(username, false, sanitize(e.getMessage()), null);
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("data 775")) {
+                return LoginResponse.failure("Your AD account is locked. Please contact IT Support to unlock your account.");
+            }
             return LoginResponse.failure("Invalid username or password");
         } catch (Exception e) {
             log.error("Unexpected error during AD authentication for user {}: {}", username, e.getMessage(), e);
