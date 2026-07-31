@@ -5,7 +5,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "ad_config")
+@Table(
+    name = "ad_config",
+    indexes = {
+        @Index(name = "idx_ad_config_created_at", columnList = "created_at"),
+        @Index(name = "idx_ad_config_ad_enabled", columnList = "ad_enabled")
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

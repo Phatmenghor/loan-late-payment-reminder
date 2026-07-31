@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>Internal Active Directory Authentication Service - Full Flow Management Guide</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+    body {
+        font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #2D3748;
+        margin: 40px;
+    }
+    h1 {
+        font-size: 24pt;
+        color: #1A365D;
+        border-bottom: 3px solid #2B6CB0;
+        padding-bottom: 8px;
+        margin-top: 20px;
+        font-weight: 700;
+    }
+    h2 {
+        font-size: 16pt;
+        color: #2B6CB0;
+        border-bottom: 1px solid #E2E8F0;
+        padding-bottom: 4px;
+        margin-top: 25px;
+        font-weight: 600;
+    }
+    h3 {
+        font-size: 13pt;
+        color: #2D3748;
+        margin-top: 18px;
+        font-weight: 600;
+    }
+    p, li {
+        font-size: 11pt;
+        color: #4A5568;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+    th {
+        background-color: #2B6CB0;
+        color: #FFFFFF;
+        font-weight: 600;
+        text-align: left;
+        padding: 10px 12px;
+        border: 1px solid #2B6CB0;
+    }
+    td {
+        padding: 9px 12px;
+        border: 1px solid #CBD5E0;
+        font-size: 10pt;
+    }
+    tr:nth-child(even) {
+        background-color: #F7FAFC;
+    }
+    .code-block {
+        background-color: #1E1E1E;
+        color: #D4D4D4;
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-size: 9.5pt;
+        padding: 14px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 12px 0;
+    }
+    .badge-success {
+        background-color: #C6F6D5;
+        color: #22543D;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 9pt;
+    }
+    .badge-error {
+        background-color: #FED7D7;
+        color: #742A2A;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 9pt;
+    }
+    .callout-info {
+        background-color: #EBF8FF;
+        border-left: 4px solid #3182CE;
+        padding: 12px 16px;
+        margin: 15px 0;
+        border-radius: 0 4px 4px 0;
+    }
+    .callout-warning {
+        background-color: #FFFAF0;
+        border-left: 4px solid #DD6B20;
+        padding: 12px 16px;
+        margin: 15px 0;
+        border-radius: 0 4px 4px 0;
+    }
+    .meta-table {
+        width: 100%;
+        background-color: #EDF2F7;
+        border: none;
+        margin-bottom: 25px;
+    }
+    .meta-table td {
+        border: none;
+        padding: 8px 12px;
+    }
+</style>
+</head>
+<body>
+
+<h1>Internal Active Directory Authentication & System API Key Platform</h1>
+<p><strong>Full End-to-End Architecture, Integration & Operations Guide for Management</strong></p>
+
+<table class="meta-table">
+    <tr>
+        <td><strong>Project Artifact:</strong> <code>internal-service.jar</code></td>
+        <td><strong>Document Version:</strong> 1.1.0</td>
+    </tr>
+    <tr>
+        <td><strong>Classification:</strong> Enterprise Internal Confidential</td>
+        <td><strong>Date:</strong> July 23, 2026</td>
+    </tr>
+    <tr>
+        <td><strong>Target Audience:</strong> Executive Management, IT Directors, Security Auditors, DevOps, System Integrators</td>
+        <td><strong>Container Tag:</strong> <code>internal_service:1.1</code></td>
+    </tr>
+</table>
+
+<h2>1. Executive Overview & Business Value</h2>
+<p>
+    The <strong>Internal Service</strong> is a centralized security and authentication platform engineered for CPBank's enterprise software ecosystem. It provides internal applications (Core Banking, E-Commerce, Mobile Gateways, Admin Portals) with a unified, high-security Active Directory (AD) LDAP authentication system while enforcing system-level authorization via system-specific <code>X-API-Key</code> headers.
+</p>
+
+<div class="callout-info">
+    <strong>Core Architectural Advantages:</strong>
+    <ul>
+        <li><strong>System-Level Authorization (AD API Keys):</strong> Every internal calling application is assigned a unique system API key (prefixed with <code>ad_sk_</code>). Requests lacking an active key are immediately blocked at the gateway level.</li>
+        <li><strong>High Availability & Outage Resilience:</strong> Implements an automated local user cache (<code>ad_user_cache</code>) using <strong>BCrypt password hashing</strong>. If the AD LDAP domain controller is offline or disabled, previously logged-in users continue to authenticate seamlessly.</li>
+        <li><strong>Non-Blocking Performance (@Async):</strong> Profile caching, BCrypt password hashing, and audit log persistence (<code>ad_log</code>) execute asynchronously in dedicated background thread pools, ensuring sub-50ms API response times.</li>
+        <li><strong>Dynamic Container-Aware Memory Scaling:</strong> Configured with modern Java 17 container flags (<code>-XX:+UseContainerSupport -XX:InitialRAMPercentage=25.0 -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC</code>), enabling automatic CPU core and RAM auto-scaling on Docker.</li>
+    </ul>
+</div>
+
+<h2>2. End-to-End System Authentication Flow</h2>
+
+<ol>
+    <li><strong>Client HTTP Request:</strong> Calling client sends <code>POST /api/v1/auth/login</code> containing the user's AD credentials in JSON and the application identity in header <code>X-API-Key</code>.</li>
+    <li><strong>Request Tracing & IP Resolution:</strong> The system assigns a unique <code>traceId</code> (e.g. <code>10cffb5e-0a6a-458d-98e0-24027c1b38f8</code>) and resolves the real client computer IP address across direct TCP connections or reverse proxies.</li>
+    <li><strong>API Key Verification:</strong> Checks <code>ad_api_keys</code> database table for key validity, active status (unlocked), and non-deletion.</li>
+    <li><strong>AD Status Check:</strong> Evaluates <code>ad_config</code> to verify if Active Directory LDAP authentication is enabled (<code>adEnabled = true</code>).</li>
+    <li><strong>Active Directory LDAP Authentication:</strong> Connects to <code>ldap://adcpbank.com/</code> to verify domain credentials and retrieve full user profile attributes (displayName, department, title, email, security groups).</li>
+    <li><strong>Asynchronous Background Persistence:</strong>
+        <ul>
+            <li>Saves/updates profile and BCrypt encrypted password in <code>ad_user_cache</code>.</li>
+            <li>Writes complete audit entry into <code>ad_log</code> (traceId, clientIp, appName, username, success status).</li>
+        </ul>
+    </li>
+    <li><strong>Direct JSON Response:</strong> Returns a clean response payload containing the user's AD profile.</li>
+</ol>
+
+<h2>3. System Administration & API Key Operations</h2>
+<p>
+    All administrative endpoints under <code>/api/v1/auth/api-keys</code> are strictly protected by <strong>HTTP Basic Authentication</strong> (Default: <code>admin / admin123</code>).
+</p>
+
+<h3>3.1 Administrative Operations Reference</h3>
+<table>
+    <thead>
+        <tr>
+            <th>HTTP Method</th>
+            <th>Endpoint Path</th>
+            <th>Description</th>
+            <th>Authentication</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>POST</code></td>
+            <td><code>/api/v1/auth/api-keys</code></td>
+            <td>Generate a new AD System API Key (e.g. for Core Banking)</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/auth/api-keys</code></td>
+            <td>List all active AD System API Keys</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/auth/api-keys/ad-config</code></td>
+            <td>Get current Active Directory status and settings</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+        <tr>
+            <td><code>PUT</code></td>
+            <td><code>/api/v1/auth/api-keys/ad-config</code></td>
+            <td>Enable or Disable Active Directory LDAP login</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/auth/api-keys/{id}</code></td>
+            <td>Get API Key details by UUID</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+        <tr>
+            <td><code>PATCH</code></td>
+            <td><code>/api/v1/auth/api-keys/{id}/status</code></td>
+            <td>Lock (INACTIVE) or Unlock (ACTIVE) an API Key</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+        <tr>
+            <td><code>DELETE</code></td>
+            <td><code>/api/v1/auth/api-keys/{id}</code></td>
+            <td>Soft-delete / Revoke an API Key</td>
+            <td><span class="badge-error">Basic Auth Required</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>3.2 Generating a System API Key</h3>
+<div class="code-block">curl -X POST http://localhost:8080/api/v1/auth/api-keys \
+  -u admin:admin123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "label": "Core Banking System"
+  }'</div>
+
+<p><strong>Response Output:</strong></p>
+<div class="code-block">{
+  "success": true,
+  "status": "success",
+  "message": "AD API Key generated successfully",
+  "data": {
+    "id": "c7a9b231-5f21-482a-912b-118841029471",
+    "apiKey": "ad_sk_corebankingsystem_4mK8pQ9zL2xR0vW1",
+    "label": "Core Banking System",
+    "status": "ACTIVE",
+    "createdAt": "2026-07-23T12:00:00",
+    "updatedAt": "2026-07-23T12:00:00"
+  }
+}</div>
+
+<h2>4. Client Application Integration Guide</h2>
+
+<h3>4.1 HTTP Login Request Specification</h3>
+<ul>
+    <li><strong>Endpoint:</strong> <code>POST /api/v1/auth/login</code></li>
+    <li><strong>Public Access:</strong> Permitted in Spring Security (no Basic Auth needed).</li>
+    <li><strong>Required Header:</strong> <code>X-API-Key: ad_sk_corebankingsystem_4mK8pQ9zL2xR0vW1</code></li>
+    <li><strong>Content-Type:</strong> <code>application/json</code></li>
+</ul>
+
+<p><strong>Request Body (JSON):</strong></p>
+<div class="code-block">{
+  "username": "menghor.phat",
+  "password": "ADDomainPassword123"
+}</div>
+
+<h3>4.2 Integration Response Payloads</h3>
+
+<h4>A. Authentication Success (HTTP 200 OK)</h4>
+<div class="code-block">{
+  "success": true,
+  "message": "Authentication successful",
+  "adUser": {
+    "samaccountName": "menghor.phat",
+    "displayName": "GIT-Phat, Menghor",
+    "cn": "GIT-Phat, Menghor",
+    "givenName": "Menghor",
+    "sn": "Phat",
+    "mail": "menghor.phat@cambodiapostbank.com.kh",
+    "department": "Core Banking",
+    "title": "Senior Web and Software Development Officer",
+    "telephoneNumber": null,
+    "mobile": null,
+    "company": "CPBank",
+    "distinguishedName": "CN=GIT-Phat\\, Menghor,OU=Core Banking,DC=adcpbank,DC=com",
+    "memberOf": [
+      "CN=IT_Group,OU=Groups,DC=adcpbank,DC=com"
+    ]
+  }
+}</div>
+
+<h4>B. Invalid Credentials (HTTP 401 Unauthorized)</h4>
+<div class="code-block">{
+  "success": false,
+  "message": "Invalid username or password",
+  "adUser": null
+}</div>
+
+<h4>C. Missing Header X-API-Key (HTTP 401 Unauthorized)</h4>
+<div class="code-block">{
+  "success": false,
+  "status": "error",
+  "message": "X-API-Key header is required to access AD authentication",
+  "data": null
+}</div>
+
+<h4>D. AD Offline / First-Time Uncached User Alert (HTTP 401 Unauthorized)</h4>
+<div class="code-block">{
+  "success": false,
+  "message": "Active Directory authentication is currently unavailable and your account has not logged in before. Please contact system administrator for assistance.",
+  "adUser": null
+}</div>
+
+<h2>5. Production DevOps & Docker Container Deployment Guide</h2>
+<p>
+    The production deployment script is configured for directory <code>/DATA/deployments/backend/service_internal</code> on server <code>ciftp-db-uat</code>.
+</p>
+
+<h3>5.1 Complete One-Line Production Docker Command</h3>
+<div class="code-block">printf "FROM account_online:1.0\nCOPY internal-service.jar /app/internal-service.jar\nENTRYPOINT [\"java\",\"-XX:+UseContainerSupport\",\"-XX:InitialRAMPercentage=25.0\",\"-XX:MaxRAMPercentage=75.0\",\"-XX:+UseG1GC\",\"-Duser.timezone=Asia/Phnom_Penh\",\"-jar\",\"/app/internal-service.jar\"]" | sudo docker build -t internal_service:1.1 -f - . && { sudo docker ps -aq -f name=^/internal_service_container$ | grep -q . && sudo docker stop internal_service_container && sudo docker rm internal_service_container; true; } && sudo docker run -d --name internal_service_container --restart unless-stopped -p 5050:5050 -v /Oracle_BI/deployment/internal_service/logs:/app/logs internal_service:1.1 && echo "✅ internal_service:1.1 running on port 5050"</div>
+
+<h3>5.2 Container Deployment Specifications</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>Production Specification</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Base Docker Image</strong></td>
+            <td><code>account_online:1.0</code></td>
+        </tr>
+        <tr>
+            <td><strong>Output Package</strong></td>
+            <td><code>internal-service.jar</code></td>
+        </tr>
+        <tr>
+            <td><strong>Container Image Tag</strong></td>
+            <td><code>internal_service:1.1</code></td>
+        </tr>
+        <tr>
+            <td><strong>Container Name</strong></td>
+            <td><code>internal_service_container</code></td>
+        </tr>
+        <tr>
+            <td><strong>Port Mapping</strong></td>
+            <td><code>5050:5050</code></td>
+        </tr>
+        <tr>
+            <td><strong>Log Directory Volume</strong></td>
+            <td><code>/Oracle_BI/deployment/internal_service/logs:/app/logs</code></td>
+        </tr>
+        <tr>
+            <td><strong>JVM Garbage Collector</strong></td>
+            <td><code>-XX:+UseG1GC</code> (G1 Collector)</td>
+        </tr>
+        <tr>
+            <td><strong>Dynamic RAM Allocation</strong></td>
+            <td><code>-XX:InitialRAMPercentage=25.0 -XX:MaxRAMPercentage=75.0</code></td>
+        </tr>
+        <tr>
+            <td><strong>Container Timezone</strong></td>
+            <td><code>Asia/Phnom_Penh</code> (UTC+7)</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>6. Security & Audit Compliance Checklist</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Security Area</th>
+            <th>Compliance Implementation</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>System Authentication</strong></td>
+            <td>Mandatory system identification via <code>ad_sk_</code> prefixed keys in <code>X-API-Key</code>.</td>
+            <td><span class="badge-success">Compliant</span></td>
+        </tr>
+        <tr>
+            <td><strong>Password Storage</strong></td>
+            <td>Zero plaintext password storage. Cached passwords are encrypted using <strong>BCrypt</strong> hashing with salt.</td>
+            <td><span class="badge-success">Compliant</span></td>
+        </tr>
+        <tr>
+            <td><strong>Client IP Audit</strong></td>
+            <td>Tracks exact caller computer IP from sockets and proxy headers (<code>X-Forwarded-For</code>, <code>X-Real-IP</code>).</td>
+            <td><span class="badge-success">Compliant</span></td>
+        </tr>
+        <tr>
+            <td><strong>End-to-End Tracing</strong></td>
+            <td>Injects <code>traceId</code> into log statements and response headers (<code>X-Trace-ID</code>) for instant troubleshooting.</td>
+            <td><span class="badge-success">Compliant</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<p style="text-align: center; margin-top: 40px; color: #718096; font-size: 9pt;">
+    <em>Document generated for Management Submission & System Operations — July 23, 2026</em>
+</p>
+
+</body>
+</html>

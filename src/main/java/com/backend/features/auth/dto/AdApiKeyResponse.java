@@ -1,5 +1,6 @@
 package com.backend.features.auth.dto;
 
+import com.backend.enums.common.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,14 +13,12 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdLogResponse {
+public class AdApiKeyResponse {
+
     private UUID id;
-    private String traceId;
-    private String clientIp;
-    private String appName;
     private String apiKey;
-    private String username;
-    private Boolean success;
-    private String failureReason;
-    private LocalDateTime calledAt;
+    private String label;
+    private Status status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

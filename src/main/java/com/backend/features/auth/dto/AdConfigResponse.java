@@ -12,14 +12,11 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdLogResponse {
+public class AdConfigResponse {
+
     private UUID id;
-    private String traceId;
-    private String clientIp;
-    private String appName;
-    private String apiKey;
-    private String username;
-    private Boolean success;
-    private String failureReason;
-    private LocalDateTime calledAt;
+    private Boolean adEnabled;
+    private String description;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

@@ -8,14 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notification_log", indexes = {
-        @Index(name = "idx_notification_log_phone_number", columnList = "phone_number"),
-        @Index(name = "idx_notification_log_customer_id", columnList = "customer_id"),
-        @Index(name = "idx_notification_log_status", columnList = "notification_status"),
-        @Index(name = "idx_notification_log_report_date", columnList = "report_date"),
-        @Index(name = "idx_notification_log_date", columnList = "notification_log_date"),
-        @Index(name = "idx_notification_log_is_deleted", columnList = "is_deleted")
-})
+@Table(name = "notification_log")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

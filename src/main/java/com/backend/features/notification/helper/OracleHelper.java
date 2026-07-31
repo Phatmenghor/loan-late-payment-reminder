@@ -41,12 +41,12 @@ public class OracleHelper {
                 records.add(record);
             }
 
-            log.info("Oracle: Selected {} loan late reminder records from view", records.size());
+            log.info("Oracle: Selected {} notification records from view", records.size());
             return records;
 
         } catch (SQLException e) {
-            log.error("Oracle: Error fetching loan late reminder records from view | Error: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to select loan late reminder records from Oracle", e);
+            log.error("Oracle: Error fetching notification records from view | Error: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to select notification records from Oracle", e);
         }
     }
 

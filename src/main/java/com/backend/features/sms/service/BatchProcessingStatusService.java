@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -15,11 +16,13 @@ public class BatchProcessingStatusService {
     private final AtomicInteger processedCount = new AtomicInteger(0);
     private final AtomicInteger successCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
+    private final AtomicBoolean stopRequested = new AtomicBoolean(false);
 
     public void startProcessing(int totalRecords) {
         processedCount.set(0);
         successCount.set(0);
         failureCount.set(0);
+        stopRequested.set(false);
 
         this.currentStatus = BatchProcessingStatus.builder()
                 .totalRecords(totalRecords)
@@ -62,12 +65,32 @@ public class BatchProcessingStatusService {
             return;
         }
 
-        currentStatus.setStatus("COMPLETED");
-        currentStatus.setMessage("SMS batch processing completed successfully");
+        if (stopRequested.get()) {
+            currentStatus.setStatus("STOPPED");
+            currentStatus.setMessage("SMS batch processing was stopped before completion");
+        } else {
+            currentStatus.setStatus("COMPLETED");
+            currentStatus.setMessage("SMS batch processing completed successfully");
+        }
         currentStatus.setUpdatedAt(LocalDateTime.now());
 
-        log.info("Batch processing completed - Total: {}, Success: {}, Failure: {}",
-                currentStatus.getTotalRecords(), successCount.get(), failureCount.get());
+        log.info("Batch processing finished - Status: {}, Total: {}, Success: {}, Failure: {}",
+                currentStatus.getStatus(), currentStatus.getTotalRecords(), successCount.get(), failureCount.get());
+    }
+
+    public BatchProcessingStatus stopProcessing() {
+        stopRequested.set(true);
+        if (currentStatus != null) {
+            currentStatus.setStatus("STOPPED");
+            currentStatus.setMessage("SMS batch processing stopped by user request");
+            currentStatus.setUpdatedAt(LocalDateTime.now());
+        }
+        log.warn("Batch SMS processing stopped by user request");
+        return getStatus();
+    }
+
+    public boolean isStopRequested() {
+        return stopRequested.get();
     }
 
     public void failProcessing(String errorMessage) {

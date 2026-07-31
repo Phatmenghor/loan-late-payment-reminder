@@ -13,12 +13,7 @@ import java.time.LocalDateTime;
  * of all SMS operations for compliance and debugging
  */
 @Entity
-@Table(name = "sms_log", indexes = {
-        @Index(name = "idx_sms_log_msg_id", columnList = "msg_id"),
-        @Index(name = "idx_sms_log_phone", columnList = "phone"),
-        @Index(name = "idx_sms_log_status", columnList = "sms_status"),
-        @Index(name = "idx_sms_log_created_at", columnList = "created_at")
-})
+@Table(name = "sms_log")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

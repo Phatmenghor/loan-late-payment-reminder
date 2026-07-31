@@ -14,6 +14,10 @@ import java.util.stream.Collectors;
 public interface AdMapper {
 
     @Mapping(target = "id", source = "id")
+    @Mapping(target = "traceId", source = "traceId")
+    @Mapping(target = "clientIp", source = "clientIp")
+    @Mapping(target = "appName", source = "appName")
+    @Mapping(target = "apiKey", source = "apiKey")
     AdLogResponse toAdLogResponse(AdLog adLog);
 
     @Mapping(target = "samaccountName",    expression = "java(str(attrs, \"sAMAccountName\"))")

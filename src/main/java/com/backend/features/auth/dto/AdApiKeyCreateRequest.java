@@ -10,11 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoginRequest {
+public class AdApiKeyCreateRequest {
 
-    @NotBlank(message = "Username is required")
-    private String username;
-
-    @NotBlank(message = "Password is required")
-    private String password;
+    @NotBlank(message = "Label is required (e.g. Core Banking System, E-Commerce App)")
+    private String label;
 }

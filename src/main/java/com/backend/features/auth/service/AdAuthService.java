@@ -5,5 +5,5 @@ import com.backend.features.auth.dto.LoginResponse;
 
 public interface AdAuthService {
 
-    LoginResponse login(LoginRequest request);
+    LoginResponse login(LoginRequest request, String apiKeyHeader);
 }

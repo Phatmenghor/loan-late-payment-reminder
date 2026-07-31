@@ -33,11 +33,15 @@ public class ErrorCodes {
     public static final String SUBSCRIPTION_EXPIRED = "SUBSCRIPTION_EXPIRED";
     public static final String SUBSCRIPTION_LIMIT_EXCEEDED = "SUBSCRIPTION_LIMIT_EXCEEDED";
     
-    // Validation errors
+    // Validation & API Key errors
     public static final String VALIDATION_ERROR = "VALIDATION_ERROR";
     public static final String EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
     public static final String PHONE_ALREADY_EXISTS = "PHONE_ALREADY_EXISTS";
-    
+    public static final String API_KEY_REQUIRED = "API_KEY_REQUIRED";
+    public static final String API_KEY_INVALID = "API_KEY_INVALID";
+    public static final String API_KEY_INACTIVE = "API_KEY_INACTIVE";
+    public static final String API_KEY_EXISTS = "API_KEY_EXISTS";
+
     // System errors
     public static final String INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
     public static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";

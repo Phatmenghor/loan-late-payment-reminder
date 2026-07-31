@@ -7,7 +7,7 @@
 
 spring:
   application:
-    name: sms-loan-late
+    name: internal-service
   profiles:
     active: prod
 
@@ -48,9 +48,9 @@ springdoc:
     enabled: true
 
 app:
-  name: "Loan Late Payment Reminder"
+  name: "Internal Service"
   version: "1.0.0"
-  description: "Notification system for loan late payment reminders"
+  description: "Internal AD Auth & Notification Service"
   notification:
     batch-size: 20
     max-threads: 10

@@ -10,10 +10,10 @@
 	</parent>
 
 	<groupId>com.backend</groupId>
-	<artifactId>loan-late-payment-reminder</artifactId>
+	<artifactId>internal-service</artifactId>
 	<version>1.0.0</version>
-	<name>Loan Late Payment Reminder</name>
-	<description>SMS notification system for loan late payment reminders</description>
+	<name>Internal Service</name>
+	<description>Internal AD Auth &amp; Notification Service</description>
 
 	<properties>
 		<java.version>17</java.version>
@@ -164,7 +164,7 @@
 
 	<build>
 
-		<finalName>notification_service_reminder</finalName>
+		<finalName>internal-service</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

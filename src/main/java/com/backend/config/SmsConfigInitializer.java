@@ -31,7 +31,7 @@ public class SmsConfigInitializer implements CommandLineRunner {
             NotificationConfig notificationConfig = NotificationConfig.builder()
                     .configType(notificationLoanLateType)
                     .configValue(loanLateMessage)
-                    .description("Notification message for loan late payment reminder")
+                    .description("Notification template message for internal service")
                     .isActive(true)
                     .build();
 
