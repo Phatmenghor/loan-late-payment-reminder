@@ -5,6 +5,9 @@
 # these settings. To change profile: active: local | dev | prod
 # ============================================================
 
+server:
+  forward-headers-strategy: framework
+
 spring:
   application:
     name: internal-service

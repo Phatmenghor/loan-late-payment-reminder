@@ -1,4 +1,4 @@
-package com.backend.features.auth.dto;
+package com.backend.features.auth.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +16,6 @@ public class AdLogResponse {
     private UUID id;
     private String traceId;
     private String clientIp;
-    private String appName;
     private String apiKey;
     private String username;
     private Boolean success;

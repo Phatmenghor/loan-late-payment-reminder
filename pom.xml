@@ -164,7 +164,7 @@
 
 	<build>
 
-		<finalName>internal-service</finalName>
+		<finalName>internal_service</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>

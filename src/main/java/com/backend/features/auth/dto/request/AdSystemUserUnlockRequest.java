@@ -1,4 +1,4 @@
-package com.backend.features.auth.dto;
+package com.backend.features.auth.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -10,8 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdApiKeyCreateRequest {
+public class AdSystemUserUnlockRequest {
 
-    @NotBlank(message = "Label is required (e.g. Core Banking System, E-Commerce App)")
-    private String label;
+    @NotBlank(message = "Username is required")
+    private String username;
+
+    private String reason;
 }

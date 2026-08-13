@@ -70,4 +70,23 @@ public class AdUserCache extends BaseUUIDEntity {
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    public void copyProfileFrom(com.backend.features.auth.dto.response.AdUserDto dto, String attrsJson) {
+        if (dto != null) {
+            if (dto.getDisplayName() != null) this.displayName = dto.getDisplayName();
+            if (dto.getCn() != null) this.cn = dto.getCn();
+            if (dto.getGivenName() != null) this.givenName = dto.getGivenName();
+            if (dto.getSn() != null) this.sn = dto.getSn();
+            if (dto.getMail() != null) this.mail = dto.getMail();
+            if (dto.getDepartment() != null) this.department = dto.getDepartment();
+            if (dto.getTitle() != null) this.title = dto.getTitle();
+            if (dto.getTelephoneNumber() != null) this.telephoneNumber = dto.getTelephoneNumber();
+            if (dto.getMobile() != null) this.mobile = dto.getMobile();
+            if (dto.getCompany() != null) this.company = dto.getCompany();
+            if (dto.getDistinguishedName() != null) this.distinguishedName = dto.getDistinguishedName();
+        }
+        if (attrsJson != null) {
+            this.adAttributes = attrsJson;
+        }
+    }
 }

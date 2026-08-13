@@ -3,10 +3,10 @@ package com.backend.features.auth.service.impl;
 import com.backend.enums.common.Status;
 import com.backend.exception.custom.NotFoundException;
 import com.backend.exception.custom.ValidationException;
-import com.backend.features.auth.dto.AdApiKeyCreateRequest;
-import com.backend.features.auth.dto.AdApiKeyResponse;
-import com.backend.features.auth.dto.AdConfigResponse;
-import com.backend.features.auth.dto.AdConfigUpdateRequest;
+import com.backend.features.auth.dto.request.AdApiKeyCreateRequest;
+import com.backend.features.auth.dto.request.AdConfigUpdateRequest;
+import com.backend.features.auth.dto.response.AdApiKeyResponse;
+import com.backend.features.auth.dto.response.AdConfigResponse;
 import com.backend.features.auth.mapper.AdApiKeyMapper;
 import com.backend.features.auth.mapper.AdConfigMapper;
 import com.backend.features.auth.model.AdApiKey;
@@ -37,6 +37,12 @@ public class AdApiKeyServiceImpl implements AdApiKeyService {
     @Transactional
     public AdApiKeyResponse createApiKey(AdApiKeyCreateRequest request) {
         String label = request.getLabel();
+        String description = request.getDescription();
+
+        if (label == null || label.isBlank()) {
+            throw new ValidationException("Label is required to create AD API Key");
+        }
+
         log.info("Creating new AD API key for label: {}", label);
 
         if (adApiKeyRepository.existsByLabelAndIsDeletedFalse(label)) {
@@ -48,6 +54,7 @@ public class AdApiKeyServiceImpl implements AdApiKeyService {
         AdApiKey apiKey = AdApiKey.builder()
                 .apiKey(rawKey)
                 .label(label)
+                .description(description)
                 .status(Status.ACTIVE)
                 .build();
 
@@ -113,7 +120,8 @@ public class AdApiKeyServiceImpl implements AdApiKeyService {
 
     @Override
     @Transactional(readOnly = true)
-    public AdApiKey validateApiKey(String apiKey) {
+    public AdApiKey validateApiKey(String rawApiKey) {
+        String apiKey = rawApiKey != null ? rawApiKey.trim() : null;
         log.debug("Validating AD API key: {}", apiKey);
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("AD API key validation failed: key is null or blank");
@@ -131,7 +139,7 @@ public class AdApiKeyServiceImpl implements AdApiKeyService {
             throw new ValidationException("AD API Key is inactive or locked");
         }
 
-        log.debug("AD API key validated successfully for system label: {}", keyRecord.getLabel());
+        log.info("AD API key validated successfully for system label: {}", keyRecord.getLabel());
         return keyRecord;
     }
 

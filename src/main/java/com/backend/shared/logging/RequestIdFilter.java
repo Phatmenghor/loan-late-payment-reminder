@@ -77,11 +77,11 @@ public class RequestIdFilter extends OncePerRequestFilter {
             int status = response.getStatus();
 
             if (status >= 500) {
-                log.error("{} {} → {} in {}ms [traceId={}]", request.getMethod(), path, status, duration, traceId);
+                log.error("{} {} → {} in {}ms", request.getMethod(), path, status, duration);
             } else if (status >= 400) {
-                log.warn("{} {} → {} in {}ms [traceId={}]", request.getMethod(), path, status, duration, traceId);
+                log.warn("{} {} → {} in {}ms", request.getMethod(), path, status, duration);
             } else {
-                log.info("{} {} → {} in {}ms [traceId={}]", request.getMethod(), path, status, duration, traceId);
+                log.info("{} {} → {} in {}ms", request.getMethod(), path, status, duration);
             }
 
             MDC.clear();

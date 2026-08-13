@@ -1,6 +1,6 @@
 package com.backend.features.auth.mapper;
 
-import com.backend.features.auth.dto.AdApiKeyResponse;
+import com.backend.features.auth.dto.response.AdApiKeyResponse;
 import com.backend.features.auth.model.AdApiKey;
 import org.mapstruct.Mapper;
 

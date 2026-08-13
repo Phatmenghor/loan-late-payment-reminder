@@ -1,6 +1,6 @@
-package com.backend.features.auth.dto;
+package com.backend.features.auth.dto.response;
 
-import com.backend.enums.common.Status;
+import com.backend.enums.common.AdUserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,12 +13,15 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdApiKeyResponse {
+public class AdSystemUserResponse {
 
     private UUID id;
     private String apiKey;
-    private String label;
-    private Status status;
+    private String username;
+    private AdUserStatus status;
+    private LocalDateTime lastLoginAt;
+    private String lockReason;
+    private LocalDateTime lockedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

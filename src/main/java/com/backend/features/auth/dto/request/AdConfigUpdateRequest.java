@@ -1,4 +1,4 @@
-package com.backend.features.auth.dto;
+package com.backend.features.auth.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AdConfigUpdateRequest {
 
-    @NotNull(message = "adEnabled parameter is required (true or false)")
+    @NotNull(message = "adEnabled field is required")
     private Boolean adEnabled;
 
     private String description;

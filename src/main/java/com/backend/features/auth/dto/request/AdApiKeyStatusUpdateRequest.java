@@ -1,4 +1,4 @@
-package com.backend.features.auth.dto;
+package com.backend.features.auth.dto.request;
 
 import com.backend.enums.common.Status;
 import jakarta.validation.constraints.NotNull;
@@ -13,6 +13,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AdApiKeyStatusUpdateRequest {
 
-    @NotNull(message = "Status is required (ACTIVE or INACTIVE)")
+    @NotNull(message = "Status is required")
     private Status status;
 }

@@ -1,11 +1,11 @@
-package com.backend.features.auth.dto;
+package com.backend.features.auth.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -24,5 +24,5 @@ public class AdUserDto {
     private String mobile;
     private String company;
     private String distinguishedName;
-    private List<String> memberOf;
+    private LocalDateTime lastLoginAt;
 }

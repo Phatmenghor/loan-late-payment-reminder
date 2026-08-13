@@ -1,10 +1,10 @@
 package com.backend.features.auth.service;
 
 import com.backend.enums.common.Status;
-import com.backend.features.auth.dto.AdApiKeyCreateRequest;
-import com.backend.features.auth.dto.AdApiKeyResponse;
-import com.backend.features.auth.dto.AdConfigResponse;
-import com.backend.features.auth.dto.AdConfigUpdateRequest;
+import com.backend.features.auth.dto.request.AdApiKeyCreateRequest;
+import com.backend.features.auth.dto.request.AdConfigUpdateRequest;
+import com.backend.features.auth.dto.response.AdApiKeyResponse;
+import com.backend.features.auth.dto.response.AdConfigResponse;
 import com.backend.features.auth.model.AdApiKey;
 
 import java.util.List;

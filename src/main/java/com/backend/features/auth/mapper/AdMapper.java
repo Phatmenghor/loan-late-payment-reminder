@@ -1,7 +1,7 @@
 package com.backend.features.auth.mapper;
 
-import com.backend.features.auth.dto.AdLogResponse;
-import com.backend.features.auth.dto.AdUserDto;
+import com.backend.features.auth.dto.response.AdLogResponse;
+import com.backend.features.auth.dto.response.AdUserDto;
 import com.backend.features.auth.model.AdLog;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -16,7 +16,6 @@ public interface AdMapper {
     @Mapping(target = "id", source = "id")
     @Mapping(target = "traceId", source = "traceId")
     @Mapping(target = "clientIp", source = "clientIp")
-    @Mapping(target = "appName", source = "appName")
     @Mapping(target = "apiKey", source = "apiKey")
     AdLogResponse toAdLogResponse(AdLog adLog);
 
@@ -32,7 +31,7 @@ public interface AdMapper {
     @Mapping(target = "mobile",           expression = "java(str(attrs, \"mobile\"))")
     @Mapping(target = "company",          expression = "java(str(attrs, \"company\"))")
     @Mapping(target = "distinguishedName",expression = "java(str(attrs, \"distinguishedName\"))")
-    @Mapping(target = "memberOf",         expression = "java(list(attrs, \"memberOf\"))")
+    @Mapping(target = "lastLoginAt",      ignore = true)
     AdUserDto toAdUserDto(Map<String, Object> attrs);
 
     default String str(Map<String, Object> attrs, String key) {

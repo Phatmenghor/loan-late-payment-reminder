@@ -1,12 +1,10 @@
 package com.backend.features.auth.controller;
 
-import com.backend.features.auth.dto.LoginRequest;
-import com.backend.features.auth.dto.LoginResponse;
+import com.backend.features.auth.dto.request.AdSystemUserUnlockRequest;
+import com.backend.features.auth.dto.request.LoginRequest;
+import com.backend.features.auth.dto.response.AdSystemUserUnlockResponse;
+import com.backend.features.auth.dto.response.LoginResponse;
 import com.backend.features.auth.service.AdAuthService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,22 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Authentication", description = "Active Directory Authentication API — Public Endpoint requiring System X-API-Key Header")
 public class AuthController {
 
     private final AdAuthService adAuthService;
 
     @PostMapping("/login")
-    @Operation(
-        summary = "Authenticate Active Directory User",
-        description = "Validates caller application identity via required HTTP Header X-API-Key and performs Active Directory authentication"
-    )
-    @SecurityRequirement(name = "apiKey")
     public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request,
-            @Parameter(description = "AD System API Key header (X-API-Key) for application identification", required = true)
             @RequestHeader(value = "X-API-Key", required = false) String apiKeyHeader) {
-        log.info("AD Login attempt for user: {} [X-API-Key header present: {}]", request.getUsername(), apiKeyHeader != null);
 
         LoginResponse loginResponse = adAuthService.login(request, apiKeyHeader);
 
@@ -46,5 +36,15 @@ public class AuthController {
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(loginResponse);
         }
+    }
+
+    @PostMapping("/users/unlock")
+    public ResponseEntity<AdSystemUserUnlockResponse> unlockUser(
+            @Valid @RequestBody AdSystemUserUnlockRequest request,
+            @RequestHeader(value = "X-API-Key", required = false) String apiKeyHeader) {
+
+        log.info("REST request to unlock AD user: {}", request.getUsername());
+        AdSystemUserUnlockResponse response = adAuthService.unlockUser(request, apiKeyHeader);
+        return ResponseEntity.ok(response);
     }
 }

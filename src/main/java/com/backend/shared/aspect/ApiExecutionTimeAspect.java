@@ -49,15 +49,15 @@ public class ApiExecutionTimeAspect {
             long executionTime = System.currentTimeMillis() - start;
 
             if (executionTime > SLOW_API_THRESHOLD_MS) {
-                log.warn("SLOW API WARNING: {} {} [{}.{}()] completed in {}ms [traceId={}]",
-                        httpMethod, uri, className, methodName, executionTime, traceId);
+                log.warn("SLOW API WARNING: {} {} [{}.{}()] completed in {}ms",
+                        httpMethod, uri, className, methodName, executionTime);
             }
 
             return result;
         } catch (Throwable throwable) {
             long executionTime = System.currentTimeMillis() - start;
-            log.error("API FAILED: {} {} [{}.{}()] failed after {}ms [traceId={}]: {}",
-                    httpMethod, uri, className, methodName, executionTime, traceId, throwable.getMessage());
+            log.error("API FAILED: {} {} [{}.{}()] failed after {}ms: {}",
+                    httpMethod, uri, className, methodName, executionTime, throwable.getMessage());
             throw throwable;
         }
     }

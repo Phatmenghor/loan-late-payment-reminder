@@ -51,8 +51,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Object>> handleBadCredentialsException(
             BadCredentialsException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Authentication failed - Invalid credentials for path {} [traceId={}, IP={}]", request.getRequestURI(), traceId, getClientIP(request));
+        log.warn("Authentication failed - Invalid credentials for path {} [IP={}]", request.getRequestURI(), getClientIP(request));
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.INVALID_CREDENTIALS, request);
         errorDetails.put("field", "credentials");
@@ -66,8 +65,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(
             AuthenticationException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Authentication failed for path {} [traceId={}, IP={}]: {}", request.getRequestURI(), traceId, getClientIP(request), ex.getMessage());
+        log.warn("Authentication failed for path {} [IP={}]: {}", request.getRequestURI(), getClientIP(request), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.INVALID_CREDENTIALS, request);
         ApiResponse<Object> response = new ApiResponse<>("error", 
@@ -78,8 +76,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ApiResponse<Object>> handleDisabledException(
             DisabledException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Login blocked - Account disabled for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Login blocked - Account disabled for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.ACCOUNT_DISABLED, request);
         errorDetails.put("accountStatus", "DISABLED");
@@ -92,8 +89,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<ApiResponse<Object>> handleLockedException(
             LockedException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Login blocked - Account locked for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Login blocked - Account locked for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.ACCOUNT_LOCKED, request);
         
@@ -105,8 +101,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(
             AccessDeniedException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Access denied for request to {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Access denied for request to {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.INSUFFICIENT_PERMISSIONS, request);
         errorDetails.put("requiredAction", "Ensure you have the necessary permissions");
@@ -123,8 +118,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-
         Map<String, Object> fieldErrors = new LinkedHashMap<>();
         List<String> missingFields = new ArrayList<>();
         List<String> invalidFields = new ArrayList<>();
@@ -149,7 +142,7 @@ public class GlobalExceptionHandler {
             }
         });
 
-        log.warn("Validation failed for request to {} [traceId={}]: {} field error(s)", request.getRequestURI(), traceId, fieldErrors.size());
+        log.warn("Validation failed for request to {}: {} field error(s)", request.getRequestURI(), fieldErrors.size());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.VALIDATION_ERROR, request);
         errorDetails.put("fieldErrors", fieldErrors);
@@ -168,14 +161,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleConstraintViolationException(
             ConstraintViolationException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
         Map<String, String> violations = ex.getConstraintViolations().stream()
                 .collect(Collectors.toMap(
                         violation -> violation.getPropertyPath().toString(),
                         ConstraintViolation::getMessage
                 ));
 
-        log.warn("Constraint violation for request to {} [traceId={}]: {}", request.getRequestURI(), traceId, violations);
+        log.warn("Constraint violation for request to {}: {}", request.getRequestURI(), violations);
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.VALIDATION_ERROR, request);
         errorDetails.put("violations", violations);
@@ -188,8 +180,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidationException(
             ValidationException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Validation error for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Validation error for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         String message = ex.getMessage();
         String errorCode = ErrorCodes.VALIDATION_ERROR;
@@ -222,8 +213,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.error("Runtime exception in request to {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage(), ex);
+        log.error("Runtime exception in request to {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
         String message = "An unexpected error occurred while processing your request.";
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.INTERNAL_SERVER_ERROR, request);
@@ -254,8 +244,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleNotFoundException(
             NotFoundException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Resource not found for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Resource not found for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.USER_NOT_FOUND, request);
         ApiResponse<Object> response = new ApiResponse<>("error", ex.getMessage(), errorDetails);
@@ -265,8 +254,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleNoHandlerFoundException(
             NoHandlerFoundException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("No handler found for {} {} [traceId={}]", ex.getHttpMethod(), ex.getRequestURL(), traceId);
+        log.warn("No handler found for {} {}", ex.getHttpMethod(), ex.getRequestURL());
 
         Map<String, Object> errorDetails = createErrorDetails("ENDPOINT_NOT_FOUND", request);
         errorDetails.put("method", ex.getHttpMethod());
@@ -283,8 +271,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodNotSupportedException(
             HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Method not supported: {} for path {} [traceId={}]", ex.getMethod(), request.getRequestURI(), traceId);
+        log.warn("Method not supported: {} for path {}", ex.getMethod(), request.getRequestURI());
 
         Map<String, Object> errorDetails = createErrorDetails("METHOD_NOT_SUPPORTED", request);
         errorDetails.put("supportedMethods", ex.getSupportedHttpMethods());
@@ -299,8 +286,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Invalid JSON request body for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Invalid JSON request body for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails("INVALID_REQUEST_BODY", request);
         errorDetails.put("hint", "Please check your JSON format and data types");
@@ -313,8 +299,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Object>> handleMissingParameterException(
             MissingServletRequestParameterException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Missing required parameter: {} for path {} [traceId={}]", ex.getParameterName(), request.getRequestURI(), traceId);
+        log.warn("Missing required parameter: {} for path {}", ex.getParameterName(), request.getRequestURI());
 
         Map<String, Object> errorDetails = createErrorDetails("MISSING_PARAMETER", request);
         errorDetails.put("field", ex.getParameterName());
@@ -328,8 +313,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Object>> handleTypeMismatchException(
             MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Type mismatch for parameter: {} for path {} [traceId={}]", ex.getName(), request.getRequestURI(), traceId);
+        log.warn("Type mismatch for parameter: {} for path {}", ex.getName(), request.getRequestURI());
 
         Map<String, Object> errorDetails = createErrorDetails("TYPE_MISMATCH", request);
         errorDetails.put("parameterName", ex.getName());
@@ -347,8 +331,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<ApiResponse<Object>> handleOptimisticLockException(
             OptimisticLockException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.warn("Optimistic lock conflict for request to {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.warn("Optimistic lock conflict for request to {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails("CONFLICT", request);
         ApiResponse<Object> response = new ApiResponse<>("error",
@@ -359,8 +342,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-
         String message = "Data validation failed";
         String errorCode = ErrorCodes.VALIDATION_ERROR;
         Map<String, Object> errorDetails = createErrorDetails(errorCode, request);
@@ -377,7 +358,7 @@ public class GlobalExceptionHandler {
             message = "Referenced data does not exist.";
         }
 
-        log.warn("Data integrity violation for path {} [traceId={}]: {}", request.getRequestURI(), traceId, message);
+        log.warn("Data integrity violation for path {}: {}", request.getRequestURI(), message);
 
         ApiResponse<Object> response = new ApiResponse<>("error", message, errorDetails);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -386,8 +367,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataAccessException(
             DataAccessException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.error("Database access error in request to {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage(), ex);
+        log.error("Database access error in request to {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.DATABASE_ERROR, request);
         ApiResponse<Object> response = new ApiResponse<>("error", 
@@ -398,8 +378,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SQLException.class)
     public ResponseEntity<ApiResponse<Object>> handleSQLException(
             SQLException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.error("SQL error in request to {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage(), ex);
+        log.error("SQL error in request to {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.DATABASE_ERROR, request);
         
@@ -411,8 +390,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<Object>> handleCustomException(
             CustomException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.error("Custom exception for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.error("Custom exception for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ex.getErrorCode(), request);
         ApiResponse<Object> response = new ApiResponse<>("error", ex.getMessage(), errorDetails);
@@ -422,8 +400,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(
             IllegalArgumentException ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.error("Invalid argument for path {} [traceId={}]: {}", request.getRequestURI(), traceId, ex.getMessage());
+        log.error("Invalid argument for path {}: {}", request.getRequestURI(), ex.getMessage());
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.VALIDATION_ERROR, request);
         ApiResponse<Object> response = new ApiResponse<>("error", ex.getMessage(), errorDetails);
@@ -437,9 +414,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(
             Exception ex, HttpServletRequest request) {
-        String traceId = getTraceId();
-        log.error("Unexpected exception in request to {} [traceId={}]: {}", 
-            request.getRequestURI(), traceId, ex.getMessage(), ex);
+        log.error("Unexpected exception in request to {}: {}", 
+            request.getRequestURI(), ex.getMessage(), ex);
 
         Map<String, Object> errorDetails = createErrorDetails(ErrorCodes.INTERNAL_SERVER_ERROR, request);
 

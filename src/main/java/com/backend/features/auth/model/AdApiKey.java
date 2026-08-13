@@ -32,6 +32,9 @@ public class AdApiKey extends BaseUUIDEntity {
     @Column(name = "label", nullable = false, unique = true, length = 255)
     private String label;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     @Builder.Default
